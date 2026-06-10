@@ -95,6 +95,24 @@ function ScreenshotPanel({
   );
 }
 
+async function readAuditResponse(response: Response) {
+  const contentType = response.headers.get("content-type") ?? "";
+
+  if (contentType.includes("application/json")) {
+    return (await response.json()) as Partial<AuditRecord> & { error?: string };
+  }
+
+  const text = await response.text();
+  const compactText = text.replace(/\s+/g, " ").trim();
+  const isHtml = compactText.startsWith("<!DOCTYPE") || compactText.startsWith("<html");
+
+  throw new Error(
+    isHtml
+      ? "The scanner API returned an HTML error page. Check the local dev server console and restart the app if needed."
+      : compactText.slice(0, 240) || "The scanner API returned an unexpected response.",
+  );
+}
+
 export default function Home() {
   const [url, setUrl] = useState("https://example.com");
   const [status, setStatus] = useState<PageStatus>("idle");
@@ -114,6 +132,10 @@ export default function Home() {
   }, [auditReport, selectedCategory]);
 
   async function runAudit() {
+    if (status === "running") {
+      return;
+    }
+
     setStatus("running");
     setFormError("");
     setAuditReport(null);
@@ -132,7 +154,7 @@ export default function Home() {
         },
         method: "POST",
       });
-      const data = await response.json();
+      const data = await readAuditResponse(response);
 
       if (!response.ok && !("status" in data)) {
         throw new Error(data.error ?? "The audit could not be completed.");
