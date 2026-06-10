@@ -1,5 +1,7 @@
 # SiteDoc AI Agent Instructions
 
+This file is the source of truth for project instructions. Claude-compatible instructions are mirrored in `CLAUDE.md`; keep both files aligned when the project goal or working rules change.
+
 ## Goal
 
 Build SiteDoc AI into a production-quality AI website QA platform that scans a public URL and generates a developer-ready audit report for accessibility, performance, SEO, UX, and visual issues.
