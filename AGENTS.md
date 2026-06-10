@@ -8,6 +8,8 @@ Build SiteDoc AI into a production-quality AI website QA platform that scans a p
 
 Treat this as one continuous project goal, not a day-by-day task list. Keep progressing through the most valuable next implementation step until the product is demo-ready, deployable, and strong enough to present as a highlight project for a middle/senior software engineer CV.
 
+The full original project brief is stored in `docs/PROJECT_BRIEF.md`. Read it when planning product scope, CV positioning, implementation priorities, or demo expectations.
+
 ## Product Direction
 
 SiteDoc AI should be easy for an employer or reviewer to judge quickly:
@@ -52,8 +54,19 @@ The product should combine deterministic engineering checks with AI explanation.
 - Keep implementation steps small, testable, and commit-ready.
 - Preserve a clean public repository: no secrets, no local build artifacts, no private notes.
 - Update README when setup, architecture, deployment, or major capabilities change.
+- Update `AGENTS.md`, `CLAUDE.md`, relevant skills, or subagent descriptions when major project information changes or new project operating rules are introduced.
+- Prefer project skills over MCP when a task can be solved with skills alone. Use MCP for external state, repository/connector data, live services, or actions that skills cannot perform.
+- After meaningful code changes, invoke the `code-reviewer` subagent or run an equivalent code-review pass before considering the task complete.
 - Before finishing a substantial change, run `npm run lint` and `npm run build`.
 
 ## Installed Project Skill
 
 Use the project-local skill at `.codex/skills/react-nextjs-development/SKILL.md` for React, Next.js, TypeScript, Tailwind, testing, and deployment guidance when working on this project.
+
+## Subagents And Hooks
+
+- Claude subagent: `.claude/agents/code-reviewer.md`
+- Codex-readable subagent description: `.codex/subagents/code-reviewer.md`
+- Claude Stop hook reminder: `.claude/hooks/review-reminder.sh`
+
+The hook is a reminder, not a replacement for judgment. It should prompt review when code changes exist at task completion.
