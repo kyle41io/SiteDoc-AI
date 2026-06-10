@@ -1,0 +1,57 @@
+# SiteDoc AI Agent Instructions
+
+## Goal
+
+Build SiteDoc AI into a production-quality AI website QA platform that scans a public URL and generates a developer-ready audit report for accessibility, performance, SEO, UX, and visual issues.
+
+Treat this as one continuous project goal, not a day-by-day task list. Keep progressing through the most valuable next implementation step until the product is demo-ready, deployable, and strong enough to present as a highlight project for a middle/senior software engineer CV.
+
+## Product Direction
+
+SiteDoc AI should be easy for an employer or reviewer to judge quickly:
+
+- Enter a public website URL.
+- Run an audit.
+- See desktop and mobile screenshots.
+- Review scores, detected issues, severity, selectors, and fix suggestions.
+- Read an AI-generated summary with prioritized remediation steps.
+- Share or export the report.
+
+The product should combine deterministic engineering checks with AI explanation. Do not make AI the only analyzer.
+
+## Core Capabilities
+
+- Browser automation with Playwright.
+- Accessibility analysis with axe-core.
+- SEO and metadata checks.
+- Performance and network health checks.
+- Console error and failed request collection.
+- Desktop and mobile screenshot capture.
+- AI-generated executive summary, top issues, and developer fix guidance.
+- Persistent audit reports with shareable links.
+- Polished responsive dashboard UI.
+
+## Technical Defaults
+
+- Framework: Next.js App Router.
+- Language: TypeScript.
+- Styling: Tailwind CSS.
+- Data: PostgreSQL with Prisma when persistence is added.
+- Scanner: Playwright running in a server/worker context.
+- Accessibility: axe-core injected into the scanned page.
+- AI: OpenAI API or Claude API behind a server-side abstraction.
+- Testing: lint, TypeScript build, focused unit tests, and Playwright E2E for critical flows.
+- Deployment target: Vercel for the web app; use a worker-friendly host if Playwright cannot run reliably in the web runtime.
+
+## Engineering Standards
+
+- Keep the product usable from the first screen; avoid marketing-only pages.
+- Prefer clear, inspectable report UI over decorative visuals.
+- Keep implementation steps small, testable, and commit-ready.
+- Preserve a clean public repository: no secrets, no local build artifacts, no private notes.
+- Update README when setup, architecture, deployment, or major capabilities change.
+- Before finishing a substantial change, run `npm run lint` and `npm run build`.
+
+## Installed Project Skill
+
+Use the project-local skill at `.codex/skills/react-nextjs-development/SKILL.md` for React, Next.js, TypeScript, Tailwind, testing, and deployment guidance when working on this project.
