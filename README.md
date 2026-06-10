@@ -2,7 +2,7 @@
 
 SiteDoc AI is an AI-assisted website QA dashboard for generating developer-ready audit reports across accessibility, performance, SEO, and UX quality.
 
-The current version is a polished frontend MVP that demonstrates the core product workflow: submit a URL, run an audit simulation, review scores, inspect categorized issues, and read AI-style remediation guidance.
+The current version includes a real Playwright scanner: submit a public URL, launch Chromium, capture desktop and mobile screenshots, collect console errors and failed network requests, save local audit artifacts, and review the generated report in the dashboard.
 
 ## Tech Stack
 
@@ -11,6 +11,7 @@ The current version is a polished frontend MVP that demonstrates the core produc
 - TypeScript
 - Tailwind CSS
 - ESLint
+- Playwright
 
 ## Getting Started
 
@@ -40,19 +41,31 @@ npm run start
 ## MVP Features
 
 - URL audit form with selectable audit modules
-- Simulated scan pipeline state
-- Accessibility, SEO, performance, and UX scorecards
-- Categorized issue list with severity labels
-- Desktop and mobile screenshot placeholders
-- AI remediation summary panel
+- Public URL validation with local/private network blocking
+- Playwright-powered desktop and mobile screenshot capture
+- Browser console error collection
+- Failed network request and HTTP 4xx/5xx collection
+- Local JSON audit records under `.data/audits`
+- Local screenshot artifacts under `public/audit-artifacts`
+- Scanner, console, network, and overall scorecards
+- Categorized issue list with severity labels and remediation guidance
 - Responsive dashboard layout
 
 ## Roadmap
 
-- Add real Playwright page scanning
 - Integrate axe-core accessibility checks
-- Capture desktop and mobile screenshots
-- Collect console errors and failed network requests
 - Generate AI remediation reports from real audit data
 - Persist audit reports with PostgreSQL
 - Add public share links and PDF export
+
+## Local Artifact Storage
+
+Scanner results are saved locally for MVP development:
+
+```text
+.data/audits/{auditId}.json
+public/audit-artifacts/{auditId}/desktop.png
+public/audit-artifacts/{auditId}/mobile.png
+```
+
+These paths are ignored by git. A production deployment should move audit records to PostgreSQL and screenshots to object storage.

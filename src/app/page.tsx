@@ -1,134 +1,159 @@
 "use client";
 
 import { FormEvent, useMemo, useState } from "react";
+import type { AuditIssue, AuditRecord } from "@/lib/audit-types";
 
-type AuditStatus = "idle" | "running" | "complete";
-type Severity = "High" | "Medium" | "Low";
-type Category = "Accessibility" | "SEO" | "Performance" | "UX";
-
-type Issue = {
-  id: number;
-  title: string;
-  category: Category;
-  severity: Severity;
-  selector: string;
-  detail: string;
-  fix: string;
-};
-
-const demoIssues: Issue[] = [
-  {
-    id: 1,
-    title: "Primary CTA has weak accessible name",
-    category: "Accessibility",
-    severity: "High",
-    selector: "button[data-action='start']",
-    detail:
-      "The most important action on the page is visually clear, but screen readers receive a generic label.",
-    fix: "Add an explicit aria-label or improve the visible button text so assistive technology announces the intent.",
-  },
-  {
-    id: 2,
-    title: "Largest image delays first impression",
-    category: "Performance",
-    severity: "High",
-    selector: "img.hero-media",
-    detail:
-      "The hero asset is loaded at full resolution and blocks the page from feeling ready on mobile.",
-    fix: "Serve responsive image sizes, add width and height, and prioritize only the above-the-fold variant.",
-  },
-  {
-    id: 3,
-    title: "Meta description is missing",
-    category: "SEO",
-    severity: "Medium",
-    selector: "head > meta[name='description']",
-    detail:
-      "Search engines and social previews do not have a concise description of the page purpose.",
-    fix: "Add a 140-160 character meta description that matches the visible page promise.",
-  },
-  {
-    id: 4,
-    title: "Form errors are not anchored to fields",
-    category: "UX",
-    severity: "Medium",
-    selector: "form.signup",
-    detail:
-      "Validation messages appear after submit, but they are not visually or programmatically linked to the field.",
-    fix: "Place errors next to the field, connect them with aria-describedby, and preserve the user's input.",
-  },
-  {
-    id: 5,
-    title: "Console reports a failed analytics request",
-    category: "Performance",
-    severity: "Low",
-    selector: "GET /analytics/events",
-    detail:
-      "A non-critical network request fails during page load and adds noise to production debugging.",
-    fix: "Guard the analytics call with retry behavior or remove it from development and preview deployments.",
-  },
-];
+type PageStatus = "idle" | "running" | "completed" | "failed";
+type Category = AuditIssue["category"];
 
 const categoryStyles: Record<Category, string> = {
-  Accessibility: "border-rose-200 bg-rose-50 text-rose-800",
-  SEO: "border-amber-200 bg-amber-50 text-amber-800",
-  Performance: "border-sky-200 bg-sky-50 text-sky-800",
-  UX: "border-emerald-200 bg-emerald-50 text-emerald-800",
+  Scanner: "border-zinc-200 bg-zinc-100 text-zinc-800",
+  Console: "border-rose-200 bg-rose-50 text-rose-800",
+  Network: "border-sky-200 bg-sky-50 text-sky-800",
 };
 
-const severityStyles: Record<Severity, string> = {
+const severityStyles: Record<AuditIssue["severity"], string> = {
   High: "bg-rose-100 text-rose-800",
   Medium: "bg-amber-100 text-amber-800",
   Low: "bg-zinc-100 text-zinc-700",
 };
 
-const scoreCards = [
-  { label: "Overall", value: 82, tone: "bg-zinc-950 text-white" },
-  { label: "Accessibility", value: 78, tone: "bg-rose-600 text-white" },
-  { label: "Performance", value: 84, tone: "bg-sky-600 text-white" },
-  { label: "SEO", value: 91, tone: "bg-amber-500 text-zinc-950" },
-  { label: "UX", value: 76, tone: "bg-emerald-600 text-white" },
+const auditSteps = [
+  "Validating public URL",
+  "Launching isolated browser",
+  "Capturing desktop screenshot",
+  "Capturing mobile screenshot",
+  "Saving audit artifacts",
 ];
 
-const auditSteps = [
-  "Launching isolated browser",
-  "Capturing desktop and mobile states",
-  "Running accessibility rules",
-  "Checking metadata and network health",
-  "Drafting AI remediation report",
+const moduleOptions = [
+  "URL safety validation",
+  "Desktop screenshot",
+  "Mobile screenshot",
+  "Console and network capture",
 ];
+
+function getScoreCards(report: AuditRecord | null) {
+  return [
+    {
+      label: "Overall",
+      value: report?.scores.overall,
+      tone: "bg-zinc-950 text-white",
+    },
+    {
+      label: "Scanner",
+      value: report?.scores.scanner,
+      tone: "bg-emerald-600 text-white",
+    },
+    {
+      label: "Console",
+      value: report?.scores.console,
+      tone: "bg-rose-600 text-white",
+    },
+    {
+      label: "Network",
+      value: report?.scores.network,
+      tone: "bg-sky-600 text-white",
+    },
+  ];
+}
+
+function ScreenshotPanel({
+  label,
+  src,
+}: {
+  label: string;
+  src?: string;
+}) {
+  if (!src) {
+    return (
+      <div className="flex aspect-[16/10] items-center justify-center border border-zinc-200 bg-[linear-gradient(135deg,#f4f4f5_25%,#ffffff_25%,#ffffff_50%,#f4f4f5_50%,#f4f4f5_75%,#ffffff_75%,#ffffff_100%)] bg-[length:20px_20px]">
+        <span className="bg-white px-3 py-1 text-sm font-medium text-zinc-600">
+          Awaiting scan
+        </span>
+      </div>
+    );
+  }
+
+  return (
+    <a
+      className="group block border border-zinc-200 bg-zinc-50"
+      href={src}
+      rel="noreferrer"
+      target="_blank"
+    >
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        alt={`${label} screenshot`}
+        className="aspect-[16/10] w-full object-cover object-top"
+        src={src}
+      />
+      <p className="border-t border-zinc-200 bg-white px-3 py-2 text-sm font-medium text-zinc-700 transition group-hover:text-zinc-950">
+        {label}
+      </p>
+    </a>
+  );
+}
 
 export default function Home() {
   const [url, setUrl] = useState("https://example.com");
-  const [status, setStatus] = useState<AuditStatus>("idle");
+  const [status, setStatus] = useState<PageStatus>("idle");
   const [selectedCategory, setSelectedCategory] = useState<Category | "All">(
     "All",
   );
   const [activeStep, setActiveStep] = useState(0);
+  const [auditReport, setAuditReport] = useState<AuditRecord | null>(null);
+  const [formError, setFormError] = useState("");
 
   const filteredIssues = useMemo(() => {
-    if (selectedCategory === "All") {
-      return demoIssues;
+    if (!auditReport || selectedCategory === "All") {
+      return auditReport?.issues ?? [];
     }
 
-    return demoIssues.filter((issue) => issue.category === selectedCategory);
-  }, [selectedCategory]);
+    return auditReport.issues.filter((issue) => issue.category === selectedCategory);
+  }, [auditReport, selectedCategory]);
 
-  function runAudit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  async function runAudit() {
     setStatus("running");
+    setFormError("");
+    setAuditReport(null);
+    setSelectedCategory("All");
     setActiveStep(0);
 
-    auditSteps.forEach((_, index) => {
-      window.setTimeout(() => {
-        setActiveStep(index);
-      }, 450 * index);
-    });
+    const stepTimer = window.setInterval(() => {
+      setActiveStep((step) => Math.min(step + 1, auditSteps.length - 1));
+    }, 900);
 
-    window.setTimeout(() => {
-      setStatus("complete");
+    try {
+      const response = await fetch("/api/audits", {
+        body: JSON.stringify({ url }),
+        headers: {
+          "Content-Type": "application/json",
+        },
+        method: "POST",
+      });
+      const data = await response.json();
+
+      if (!response.ok && !("status" in data)) {
+        throw new Error(data.error ?? "The audit could not be completed.");
+      }
+
+      const report = data as AuditRecord;
+      setAuditReport(report);
+      setStatus(report.status === "failed" ? "failed" : "completed");
+
+      if (report.status === "failed") {
+        setFormError(report.error ?? "The audit could not be completed.");
+      }
+    } catch (error) {
+      setStatus("failed");
+      setFormError(
+        error instanceof Error ? error.message : "The audit could not be completed.",
+      );
+    } finally {
+      window.clearInterval(stepTimer);
       setActiveStep(auditSteps.length - 1);
-    }, 2600);
+    }
   }
 
   return (
@@ -145,16 +170,16 @@ export default function Home() {
           </div>
           <div className="grid grid-cols-3 gap-2 text-center text-sm">
             <div className="border border-zinc-200 bg-zinc-50 px-4 py-3">
-              <p className="font-semibold">5</p>
-              <p className="text-zinc-500">Checks</p>
-            </div>
-            <div className="border border-zinc-200 bg-zinc-50 px-4 py-3">
               <p className="font-semibold">2</p>
               <p className="text-zinc-500">Viewports</p>
             </div>
             <div className="border border-zinc-200 bg-zinc-50 px-4 py-3">
-              <p className="font-semibold">AI</p>
-              <p className="text-zinc-500">Fixes</p>
+              <p className="font-semibold">Live</p>
+              <p className="text-zinc-500">Browser</p>
+            </div>
+            <div className="border border-zinc-200 bg-zinc-50 px-4 py-3">
+              <p className="font-semibold">JSON</p>
+              <p className="text-zinc-500">Saved</p>
             </div>
           </div>
         </div>
@@ -168,11 +193,17 @@ export default function Home() {
               <p className="text-sm text-zinc-500">Scan a public page URL.</p>
             </div>
             <span className="border border-emerald-200 bg-emerald-50 px-2 py-1 text-xs font-semibold text-emerald-800">
-              MVP
+              Scanner
             </span>
           </div>
 
-          <form className="mt-4 space-y-5" onSubmit={runAudit}>
+          <form
+            className="mt-4 space-y-5"
+            onSubmit={(event: FormEvent<HTMLFormElement>) => {
+              event.preventDefault();
+              void runAudit();
+            }}
+          >
             <label className="block">
               <span className="text-sm font-medium text-zinc-700">
                 Website URL
@@ -190,27 +221,33 @@ export default function Home() {
               <legend className="text-sm font-medium text-zinc-700">
                 Audit modules
               </legend>
-              {["Accessibility", "Performance", "SEO", "AI UX review"].map(
-                (label) => (
-                  <label
-                    className="flex items-center justify-between border border-zinc-200 px-3 py-2 text-sm"
-                    key={label}
-                  >
-                    <span>{label}</span>
-                    <input
-                      className="h-4 w-4 accent-zinc-950"
-                      defaultChecked
-                      type="checkbox"
-                    />
-                  </label>
-                ),
-              )}
+              {moduleOptions.map((label) => (
+                <label
+                  className="flex items-center justify-between border border-zinc-200 px-3 py-2 text-sm"
+                  key={label}
+                >
+                  <span>{label}</span>
+                  <input
+                    checked
+                    className="h-4 w-4 accent-zinc-950"
+                    readOnly
+                    type="checkbox"
+                  />
+                </label>
+              ))}
             </fieldset>
+
+            {formError ? (
+              <p className="border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-800">
+                {formError}
+              </p>
+            ) : null}
 
             <button
               className="h-11 w-full bg-zinc-950 px-4 text-sm font-semibold text-white transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:bg-zinc-400"
               disabled={status === "running"}
-              type="submit"
+              onClick={() => void runAudit()}
+              type="button"
             >
               {status === "running" ? "Running audit..." : "Run audit"}
             </button>
@@ -221,7 +258,8 @@ export default function Home() {
             <div className="mt-3 space-y-2">
               {auditSteps.map((step, index) => {
                 const isDone =
-                  status === "complete" ||
+                  status === "completed" ||
+                  status === "failed" ||
                   (status === "running" && index <= activeStep);
 
                 return (
@@ -247,32 +285,56 @@ export default function Home() {
             <div className="flex flex-col gap-3 border-b border-zinc-200 pb-4 md:flex-row md:items-center md:justify-between">
               <div>
                 <h2 className="text-xl font-semibold">Audit report</h2>
-                <p className="mt-1 break-all text-sm text-zinc-500">{url}</p>
+                <p className="mt-1 break-all text-sm text-zinc-500">
+                  {auditReport?.finalUrl ?? url}
+                </p>
+                {auditReport ? (
+                  <p className="mt-1 text-xs font-medium uppercase tracking-[0.14em] text-zinc-400">
+                    {auditReport.status} / {auditReport.id}
+                  </p>
+                ) : null}
               </div>
               <div className="flex gap-2">
-                <button className="border border-zinc-300 px-3 py-2 text-sm font-medium transition hover:border-zinc-950">
-                  Copy link
+                <button
+                  className="border border-zinc-300 px-3 py-2 text-sm font-medium transition hover:border-zinc-950 disabled:cursor-not-allowed disabled:text-zinc-400"
+                  disabled={!auditReport}
+                  onClick={() => {
+                    if (auditReport) {
+                      void navigator.clipboard.writeText(
+                        `${window.location.origin}/api/audits?id=${auditReport.id}`,
+                      );
+                    }
+                  }}
+                  type="button"
+                >
+                  Copy JSON link
                 </button>
-                <button className="border border-zinc-950 bg-zinc-950 px-3 py-2 text-sm font-medium text-white transition hover:bg-zinc-800">
+                <button
+                  className="border border-zinc-950 bg-zinc-950 px-3 py-2 text-sm font-medium text-white transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:border-zinc-300 disabled:bg-zinc-300"
+                  disabled
+                  title="PDF export will be added after report persistence is upgraded."
+                  type="button"
+                >
                   Export PDF
                 </button>
               </div>
             </div>
 
-            <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-              {scoreCards.map((score) => (
+            <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              {getScoreCards(auditReport).map((score) => (
                 <div className="border border-zinc-200 bg-zinc-50" key={score.label}>
                   <div className={`px-4 py-3 ${score.tone}`}>
                     <p className="text-sm font-medium">{score.label}</p>
                     <p className="mt-2 text-3xl font-semibold">
-                      {status === "idle" ? "--" : score.value}
+                      {score.value === undefined ? "--" : score.value}
                     </p>
                   </div>
                   <div className="h-1.5 bg-zinc-200">
                     <div
                       className="h-full bg-current transition-all"
                       style={{
-                        width: status === "idle" ? "0%" : `${score.value}%`,
+                        width:
+                          score.value === undefined ? "0%" : `${score.value}%`,
                       }}
                     />
                   </div>
@@ -287,7 +349,7 @@ export default function Home() {
                 <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                   <h2 className="text-lg font-semibold">Detected issues</h2>
                   <div className="flex flex-wrap gap-2">
-                    {(["All", "Accessibility", "Performance", "SEO", "UX"] as const).map(
+                    {(["All", "Scanner", "Console", "Network"] as const).map(
                       (category) => (
                         <button
                           className={`border px-3 py-1.5 text-sm font-medium transition ${
@@ -307,41 +369,52 @@ export default function Home() {
                 </div>
 
                 <div className="mt-4 space-y-3">
-                  {filteredIssues.map((issue) => (
-                    <article
-                      className="border border-zinc-200 bg-zinc-50 p-4"
-                      key={issue.id}
-                    >
-                      <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-                        <div>
-                          <div className="flex flex-wrap gap-2">
-                            <span
-                              className={`border px-2 py-1 text-xs font-semibold ${categoryStyles[issue.category]}`}
-                            >
-                              {issue.category}
-                            </span>
-                            <span
-                              className={`px-2 py-1 text-xs font-semibold ${severityStyles[issue.severity]}`}
-                            >
-                              {issue.severity}
-                            </span>
+                  {!auditReport ? (
+                    <p className="border border-zinc-200 bg-zinc-50 p-4 text-sm text-zinc-600">
+                      Run an audit to collect console errors, failed requests,
+                      and screenshot artifacts.
+                    </p>
+                  ) : filteredIssues.length === 0 ? (
+                    <p className="border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">
+                      No console or network issues were detected in this scan.
+                    </p>
+                  ) : (
+                    filteredIssues.map((issue) => (
+                      <article
+                        className="border border-zinc-200 bg-zinc-50 p-4"
+                        key={issue.id}
+                      >
+                        <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                          <div>
+                            <div className="flex flex-wrap gap-2">
+                              <span
+                                className={`border px-2 py-1 text-xs font-semibold ${categoryStyles[issue.category]}`}
+                              >
+                                {issue.category}
+                              </span>
+                              <span
+                                className={`px-2 py-1 text-xs font-semibold ${severityStyles[issue.severity]}`}
+                              >
+                                {issue.severity}
+                              </span>
+                            </div>
+                            <h3 className="mt-3 text-base font-semibold">
+                              {issue.title}
+                            </h3>
                           </div>
-                          <h3 className="mt-3 text-base font-semibold">
-                            {issue.title}
-                          </h3>
+                          <code className="w-full border border-zinc-200 bg-white px-2 py-1 text-xs text-zinc-600 md:w-auto">
+                            {issue.selector}
+                          </code>
                         </div>
-                        <code className="w-full border border-zinc-200 bg-white px-2 py-1 text-xs text-zinc-600 md:w-auto">
-                          {issue.selector}
-                        </code>
-                      </div>
-                      <p className="mt-3 text-sm leading-6 text-zinc-600">
-                        {issue.detail}
-                      </p>
-                      <p className="mt-3 border-l-2 border-emerald-600 pl-3 text-sm leading-6 text-zinc-800">
-                        {issue.fix}
-                      </p>
-                    </article>
-                  ))}
+                        <p className="mt-3 break-words text-sm leading-6 text-zinc-600">
+                          {issue.detail}
+                        </p>
+                        <p className="mt-3 border-l-2 border-emerald-600 pl-3 text-sm leading-6 text-zinc-800">
+                          {issue.fix}
+                        </p>
+                      </article>
+                    ))
+                  )}
                 </div>
               </div>
             </div>
@@ -350,31 +423,55 @@ export default function Home() {
               <div className="border border-zinc-200 bg-white p-4">
                 <h2 className="text-lg font-semibold">Screenshots</h2>
                 <div className="mt-4 space-y-3">
-                  {["Desktop 1440px", "Mobile 390px"].map((label) => (
-                    <div
-                      className="flex aspect-[16/10] items-center justify-center border border-zinc-200 bg-[linear-gradient(135deg,#f4f4f5_25%,#ffffff_25%,#ffffff_50%,#f4f4f5_50%,#f4f4f5_75%,#ffffff_75%,#ffffff_100%)] bg-[length:20px_20px]"
-                      key={label}
-                    >
-                      <span className="bg-white px-3 py-1 text-sm font-medium text-zinc-600">
-                        {status === "idle" ? "Awaiting scan" : label}
-                      </span>
-                    </div>
-                  ))}
+                  <ScreenshotPanel
+                    label="Desktop 1440px"
+                    src={auditReport?.screenshots.desktop}
+                  />
+                  <ScreenshotPanel
+                    label="Mobile 390px"
+                    src={auditReport?.screenshots.mobile}
+                  />
                 </div>
               </div>
 
               <div className="border border-zinc-200 bg-white p-4">
-                <h2 className="text-lg font-semibold">AI remediation</h2>
+                <h2 className="text-lg font-semibold">Scan metrics</h2>
+                <div className="mt-4 space-y-3">
+                  {auditReport?.metrics.length ? (
+                    auditReport.metrics.map((metric) => (
+                      <div className="border border-zinc-200 bg-zinc-50 p-3" key={metric.label}>
+                        <div className="flex items-center justify-between gap-3">
+                          <p className="text-sm font-semibold">{metric.label}</p>
+                          <p className="text-sm font-semibold text-zinc-950">
+                            {metric.value}
+                          </p>
+                        </div>
+                        <p className="mt-2 break-words text-xs leading-5 text-zinc-500">
+                          {metric.detail}
+                        </p>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-sm leading-6 text-zinc-600">
+                      Run an audit to save scan timing, final URL, and browser
+                      signal metrics.
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              <div className="border border-zinc-200 bg-white p-4">
+                <h2 className="text-lg font-semibold">Scanner summary</h2>
                 <p className="mt-3 text-sm leading-6 text-zinc-600">
-                  {status === "idle"
-                    ? "Run an audit to generate a prioritized developer summary."
-                    : "Fix the accessible name and hero image first. These two issues block inclusive usage and slow the first impression. Metadata and validation improvements can follow in the same release because they are low-risk changes with visible quality gains."}
+                  {auditReport?.summary ??
+                    "Run an audit to generate a scanner summary from real browser signals."}
                 </p>
                 <div className="mt-4 border border-zinc-200 bg-zinc-50 p-3">
                   <p className="text-sm font-semibold">Next action</p>
                   <p className="mt-2 text-sm text-zinc-600">
-                    Create a ticket for each high-severity issue and attach the
-                    screenshot, selector, and recommended fix.
+                    {auditReport
+                      ? "Use the screenshots, console errors, and failed request list as the input for accessibility, SEO, and AI remediation passes."
+                      : "Start with a public URL that does not require login or private network access."}
                   </p>
                 </div>
               </div>

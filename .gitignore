@@ -20,6 +20,10 @@
 # production
 /build
 
+# local audit artifacts
+/.data/
+/public/audit-artifacts/
+
 # misc
 .DS_Store
 *.pem
