@@ -4,9 +4,9 @@
 
 SiteDoc AI is an AI-powered website QA platform that scans a public URL and produces a developer-ready audit report for accessibility, performance, SEO, UX, and visual issues.
 
-This is easy for employers to judge: they paste a website URL, run an audit, and immediately see screenshots, scores, detected issues, severity levels, and AI-generated fix suggestions.
+This is easy to judge: they paste a website URL, run an audit, and immediately see screenshots, scores, detected issues, severity levels, and AI-generated fix suggestions.
 
-## Why This Is Strong For Your CV
+## Why This Is Strong
 
 This project shows skills that are not duplicated with your ERP, invoice, learning, or music projects:
 
@@ -108,8 +108,6 @@ Each report gets a public link:
 /SiteDoc.ai/report/{reportId}
 ```
 
-This is very useful for your CV because employers can open and judge the product immediately.
-
 ## Tech Stack
 
 Recommended stack:
@@ -185,9 +183,9 @@ AuditMetric
 - unit
 ```
 
-## 2-Week Build Plan
+## Build Plan
 
-### Days 1-2: Foundation
+### Foundation
 
 - Create Next.js app.
 - Add Tailwind/shadcn UI.
@@ -195,7 +193,7 @@ AuditMetric
 - Create audit form and report page shell.
 - Define audit/report database models.
 
-### Days 3-4: Playwright Scanner
+### Playwright Scanner
 
 - Build URL validation.
 - Launch Playwright browser.
@@ -205,21 +203,21 @@ AuditMetric
 - Collect failed network requests.
 - Save audit status and artifacts.
 
-### Days 5-6: Accessibility + SEO Checks
+### Accessibility + SEO Checks
 
 - Inject axe-core.
 - Save accessibility issues.
 - Add SEO checks: title, meta description, H1, image alt, canonical, Open Graph.
 - Add basic scoring system.
 
-### Days 7-8: AI Report Generation
+### AI Report Generation
 
 - Send structured issues to AI.
 - Generate summary, top problems, and fix recommendations.
 - Save AI output to audit report.
 - Add fallback if AI fails.
 
-### Days 9-10: Report UI
+### Report UI
 
 - Build polished report dashboard.
 - Add score cards.
@@ -228,7 +226,7 @@ AuditMetric
 - Add severity badges.
 - Add copy report link.
 
-### Days 11-12: Production Polish
+### Production Polish
 
 - Add error states.
 - Add loading/progress UI.
@@ -236,16 +234,15 @@ AuditMetric
 - Improve mobile layout.
 - Add README with screenshots and architecture diagram.
 
-### Days 13-14: Deploy + Test
+### Deploy + Test
 
 - Deploy database to Neon.
 - Deploy app to Vercel.
 - Deploy Playwright worker to Render if Vercel serverless is too limited.
 - Add GitHub Actions.
 - Add Playwright E2E test for audit flow.
-- Finalize CV bullets.
 
-## Best CV Entry
+## Description
 
 ```text
 SiteDoc AI - AI Website QA & UX Audit Platform
@@ -261,15 +258,3 @@ Technologies: Next.js, Playwright, axe-core, PostgreSQL/Neon, Prisma, OpenAI API
 - Built shareable audit report pages with scorecards, screenshots, issue filtering, and public report links
 - Added automated tests and CI workflow covering URL submission, audit processing, and report rendering
 ```
-
-## My Recommendation
-
-Build **SiteDoc AI** instead of **AuditPilot AI**.
-
-The name is clearer, less generic, and immediately communicates “prove this page is ready.” It also looks good on a CV:
-
-```text
-SiteDoc AI - AI Website QA & UX Audit Platform
-```
-
-This project gives you the strongest combination of: impressive demo, modern stack, visible product value, AI features, and realistic 2-week scope.
