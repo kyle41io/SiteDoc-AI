@@ -12,8 +12,19 @@ import {
   getAuditArtifactDirectory,
   getAuditArtifactUrl,
 } from "@/lib/store";
-import { scoreFromCounts, severityFromIndex } from "@/lib/audit/scoring";
+import {
+  accessibilityScore,
+  overallScore,
+  scoreFromCounts,
+  severityFromIndex,
+} from "@/lib/audit/scoring";
 import { auditStrings, type AuditStrings } from "@/lib/audit/audit-i18n";
+import {
+  buildAccessibilityIssues,
+  countAxeImpacts,
+  runAxe,
+  type AxeViolation,
+} from "@/lib/audit/accessibility";
 import { createRequestSafetyGuard } from "@/lib/url-validation";
 
 type ScanOptions = {
@@ -148,7 +159,8 @@ async function captureViewport(
     consoleErrors: ConsoleError[];
     failedRequests: FailedRequest[];
   },
-) {
+  analyze?: { language?: string },
+): Promise<{ finalUrl: string; violations: AxeViolation[] | null }> {
   let context: BrowserContext | undefined;
 
   try {
@@ -165,12 +177,15 @@ async function captureViewport(
     });
 
     await page.waitForLoadState("networkidle", { timeout: 5_000 }).catch(() => undefined);
+
+    const violations = analyze ? await runAxe(page, analyze.language) : null;
+
     await page.screenshot({
       fullPage: true,
       path: path.join(artifactDirectory, filename),
     });
 
-    return response?.url() ?? page.url();
+    return { finalUrl: response?.url() ?? page.url(), violations };
   } finally {
     await context?.close();
   }
@@ -235,13 +250,14 @@ export async function runPlaywrightScan(options: ScanOptions): Promise<AuditReco
   });
 
   try {
-    const finalUrl = await captureViewport(
+    const { finalUrl, violations } = await captureViewport(
       browser,
       options.url,
       artifactDirectory,
       "desktop.png",
       { width: 1440, height: 1000 },
       { consoleErrors, failedRequests },
+      { language: options.language },
     );
 
     await captureViewport(browser, options.url, artifactDirectory, "mobile.png", {
@@ -258,11 +274,23 @@ export async function runPlaywrightScan(options: ScanOptions): Promise<AuditReco
       failedRequests,
       (request) => `${request.method}:${request.status ?? "failed"}:${request.url}`,
     );
-    const scores = scoreFromCounts(
+    const technical = scoreFromCounts(
       dedupedConsoleErrors.length,
       dedupedFailedRequests.length,
       durationMs,
     );
+    // `violations` is null only if the accessibility scan failed to run; in
+    // that case we omit the category rather than report a misleading score.
+    const accessibility = violations
+      ? accessibilityScore(countAxeImpacts(violations))
+      : undefined;
+    const scores = {
+      overall: overallScore({ technical: technical.overall, accessibility }),
+      accessibility,
+      scanner: technical.scanner,
+      console: technical.console,
+      network: technical.network,
+    };
     const s = auditStrings(options.language);
 
     return {
@@ -280,7 +308,10 @@ export async function runPlaywrightScan(options: ScanOptions): Promise<AuditReco
       },
       consoleErrors: dedupedConsoleErrors,
       failedRequests: dedupedFailedRequests,
-      issues: buildIssues(dedupedConsoleErrors, dedupedFailedRequests, s),
+      issues: [
+        ...(violations ? buildAccessibilityIssues(violations, s) : []),
+        ...buildIssues(dedupedConsoleErrors, dedupedFailedRequests, s),
+      ],
       metrics: buildMetrics(
         {
           durationMs,

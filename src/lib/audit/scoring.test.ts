@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { scoreFromCounts, severityFromIndex } from "@/lib/audit/scoring";
+import {
+  accessibilityScore,
+  overallScore,
+  scoreFromCounts,
+  severityFromIndex,
+} from "@/lib/audit/scoring";
 
 describe("scoreFromCounts", () => {
   it("returns perfect-ish scores for a fast, clean page", () => {
@@ -48,6 +53,34 @@ describe("scoreFromCounts", () => {
         expect(value).toBeLessThanOrEqual(100);
       }
     }
+  });
+});
+
+describe("accessibilityScore", () => {
+  it("is 100 with no violations", () => {
+    expect(accessibilityScore({ critical: 0, serious: 0, moderate: 0, minor: 0 })).toBe(100);
+  });
+
+  it("weights critical/serious more than moderate/minor", () => {
+    expect(accessibilityScore({ critical: 1, serious: 0, moderate: 0, minor: 0 })).toBe(84);
+    expect(accessibilityScore({ critical: 0, serious: 1, moderate: 0, minor: 0 })).toBe(90);
+    expect(accessibilityScore({ critical: 0, serious: 0, moderate: 1, minor: 0 })).toBe(96);
+    expect(accessibilityScore({ critical: 0, serious: 0, moderate: 0, minor: 1 })).toBe(99);
+  });
+
+  it("never drops below 0", () => {
+    expect(accessibilityScore({ critical: 20, serious: 0, moderate: 0, minor: 0 })).toBe(0);
+  });
+});
+
+describe("overallScore", () => {
+  it("returns the technical score when accessibility is absent", () => {
+    expect(overallScore({ technical: 82 })).toBe(82);
+  });
+
+  it("blends technical and accessibility 50/50", () => {
+    expect(overallScore({ technical: 80, accessibility: 90 })).toBe(85);
+    expect(overallScore({ technical: 100, accessibility: 60 })).toBe(80);
   });
 });
 

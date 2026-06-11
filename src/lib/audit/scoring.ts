@@ -33,6 +33,37 @@ export function scoreFromCounts(
   };
 }
 
+export type AxeImpactCounts = {
+  critical: number;
+  serious: number;
+  moderate: number;
+  minor: number;
+};
+
+/**
+ * Accessibility score (0-100) from axe-core violation counts, weighted by
+ * impact. Penalties are summed and subtracted from 100; a perfectly clean page
+ * scores 100. Critical/serious issues dominate the deduction.
+ */
+export function accessibilityScore(counts: AxeImpactCounts): number {
+  const penalty =
+    counts.critical * 16 + counts.serious * 10 + counts.moderate * 4 + counts.minor * 1;
+  return Math.max(0, 100 - penalty);
+}
+
+/**
+ * Blends the deterministic "technical" score (scan/console/network) with the
+ * accessibility score into the headline overall. When accessibility has not
+ * run yet, the technical score stands alone. Weights rebalance as more category
+ * engines (SEO, performance) come online.
+ */
+export function overallScore(parts: { technical: number; accessibility?: number }): number {
+  if (typeof parts.accessibility === "number") {
+    return Math.round(parts.accessibility * 0.5 + parts.technical * 0.5);
+  }
+  return Math.round(parts.technical);
+}
+
 /**
  * Maps an issue's position in a (severity-sorted) list to a severity label.
  * The first item is treated as the most important.

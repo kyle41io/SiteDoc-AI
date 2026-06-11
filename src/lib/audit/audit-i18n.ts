@@ -13,6 +13,8 @@ export type AuditStrings = {
   networkIssueTitleStatus: (status: number) => string;
   networkIssueTitleFailed: string;
   networkIssueFix: string;
+  /** Suffix appended to an accessibility issue detail, e.g. "Affected elements: 3." */
+  a11yAffected: (count: number) => string;
   metricScanDurationLabel: string;
   metricScanDurationDetail: string;
   metricConsoleErrorsLabel: string;
@@ -36,6 +38,7 @@ const en: AuditStrings = {
   networkIssueTitleFailed: "Network request failed",
   networkIssueFix:
     "Confirm the resource URL, server status, deployment configuration, CORS policy, and retry/error handling for this request.",
+  a11yAffected: (n) => `Affected elements: ${n}.`,
   metricScanDurationLabel: "Scan duration",
   metricScanDurationDetail:
     "Time spent launching Chromium, loading the page, and capturing screenshots.",
@@ -63,6 +66,7 @@ const vi: AuditStrings = {
   networkIssueTitleFailed: "Yêu cầu mạng thất bại",
   networkIssueFix:
     "Xác minh URL tài nguyên, trạng thái máy chủ, cấu hình triển khai, chính sách CORS và cơ chế thử lại/xử lý lỗi cho yêu cầu này.",
+  a11yAffected: (n) => `Số phần tử bị ảnh hưởng: ${n}.`,
   metricScanDurationLabel: "Thời lượng quét",
   metricScanDurationDetail:
     "Thời gian khởi chạy Chromium, tải trang và chụp màn hình.",
@@ -90,6 +94,7 @@ const es: AuditStrings = {
   networkIssueTitleFailed: "La solicitud de red falló",
   networkIssueFix:
     "Verifica la URL del recurso, el estado del servidor, la configuración de despliegue, la política CORS y el manejo de reintentos/errores de esta solicitud.",
+  a11yAffected: (n) => `Elementos afectados: ${n}.`,
   metricScanDurationLabel: "Duración del análisis",
   metricScanDurationDetail:
     "Tiempo dedicado a iniciar Chromium, cargar la página y capturar las pantallas.",
@@ -117,6 +122,7 @@ const zh: AuditStrings = {
   networkIssueTitleFailed: "网络请求失败",
   networkIssueFix:
     "请确认资源 URL、服务器状态、部署配置、CORS 策略以及该请求的重试/错误处理。",
+  a11yAffected: (n) => `受影响元素：${n} 个。`,
   metricScanDurationLabel: "扫描耗时",
   metricScanDurationDetail: "启动 Chromium、加载页面和截图所花费的时间。",
   metricConsoleErrorsLabel: "控制台错误",
@@ -142,6 +148,7 @@ const ja: AuditStrings = {
   networkIssueTitleFailed: "ネットワークリクエストが失敗しました",
   networkIssueFix:
     "リソース URL、サーバー状態、デプロイ設定、CORS ポリシー、このリクエストの再試行／エラー処理を確認してください。",
+  a11yAffected: (n) => `影響を受ける要素: ${n} 件。`,
   metricScanDurationLabel: "スキャン時間",
   metricScanDurationDetail:
     "Chromium の起動、ページ読み込み、スクリーンショット取得に要した時間。",
