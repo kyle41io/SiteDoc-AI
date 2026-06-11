@@ -1,27 +1,18 @@
 "use client";
 
 import { FormEvent, useMemo, useState } from "react";
-import type { AuditIssue, AuditRecord } from "@/lib/audit-types";
+import type { AuditCategory, AuditRecord } from "@/lib/audit-types";
+import { CATEGORY_ACCENT } from "@/lib/audit/category-meta";
+import { cn } from "@/lib/cn";
+import { GlassCard } from "@/components/ui/GlassCard";
+import { ScoreCard } from "@/components/ui/ScoreCard";
+import { Tabs, type TabItem } from "@/components/ui/Tabs";
+import { CategoryBadge, SeverityBadge } from "@/components/ui/badges";
+import { HealthOrbMount, OrbFallback } from "@/components/three/HealthOrbMount";
 
 type PageStatus = "idle" | "running" | "completed" | "failed";
-type Category = AuditIssue["category"];
-
-const categoryStyles: Record<Category, string> = {
-  Accessibility: "border-emerald-200 bg-emerald-50 text-emerald-800",
-  SEO: "border-violet-200 bg-violet-50 text-violet-800",
-  Performance: "border-amber-200 bg-amber-50 text-amber-800",
-  UX: "border-indigo-200 bg-indigo-50 text-indigo-800",
-  BestPractices: "border-teal-200 bg-teal-50 text-teal-800",
-  Scanner: "border-zinc-200 bg-zinc-100 text-zinc-800",
-  Console: "border-rose-200 bg-rose-50 text-rose-800",
-  Network: "border-sky-200 bg-sky-50 text-sky-800",
-};
-
-const severityStyles: Record<AuditIssue["severity"], string> = {
-  High: "bg-rose-100 text-rose-800",
-  Medium: "bg-amber-100 text-amber-800",
-  Low: "bg-zinc-100 text-zinc-700",
-};
+type FilterValue = AuditCategory | "All";
+type DetailTab = "overview" | "issues" | "screenshots" | "metrics";
 
 const auditSteps = [
   "Validating public URL",
@@ -35,45 +26,30 @@ const moduleOptions = [
   "URL safety validation",
   "Desktop screenshot",
   "Mobile screenshot",
-  "Console and network capture",
+  "Console & network capture",
 ];
 
-function getScoreCards(report: AuditRecord | null) {
-  return [
-    {
-      label: "Overall",
-      value: report?.scores.overall,
-      tone: "bg-zinc-950 text-white",
-    },
-    {
-      label: "Scanner",
-      value: report?.scores.scanner,
-      tone: "bg-emerald-600 text-white",
-    },
-    {
-      label: "Console",
-      value: report?.scores.console,
-      tone: "bg-rose-600 text-white",
-    },
-    {
-      label: "Network",
-      value: report?.scores.network,
-      tone: "bg-sky-600 text-white",
-    },
+/** Score tiles for every category that has a measured value (overall is the orb). */
+function scoreBand(report: AuditRecord | null) {
+  const s = report?.scores;
+  const cards: Array<{ key: string; label: string; value?: number; accent: string }> = [
+    { key: "accessibility", label: "Accessibility", value: s?.accessibility, accent: CATEGORY_ACCENT.Accessibility },
+    { key: "seo", label: "SEO", value: s?.seo, accent: CATEGORY_ACCENT.SEO },
+    { key: "performance", label: "Performance", value: s?.performance, accent: CATEGORY_ACCENT.Performance },
+    { key: "ux", label: "UX", value: s?.ux, accent: CATEGORY_ACCENT.UX },
+    { key: "bestPractices", label: "Best Practices", value: s?.bestPractices, accent: CATEGORY_ACCENT.BestPractices },
+    { key: "scanner", label: "Scanner", value: s?.scanner, accent: CATEGORY_ACCENT.Scanner },
+    { key: "console", label: "Console", value: s?.console, accent: CATEGORY_ACCENT.Console },
+    { key: "network", label: "Network", value: s?.network, accent: CATEGORY_ACCENT.Network },
   ];
+  return cards.filter((card) => typeof card.value === "number");
 }
 
-function ScreenshotPanel({
-  label,
-  src,
-}: {
-  label: string;
-  src?: string;
-}) {
+function ScreenshotPanel({ label, src }: { label: string; src?: string }) {
   if (!src) {
     return (
-      <div className="flex aspect-[16/10] items-center justify-center border border-zinc-200 bg-[linear-gradient(135deg,#f4f4f5_25%,#ffffff_25%,#ffffff_50%,#f4f4f5_50%,#f4f4f5_75%,#ffffff_75%,#ffffff_100%)] bg-[length:20px_20px]">
-        <span className="bg-white px-3 py-1 text-sm font-medium text-zinc-600">
+      <div className="flex aspect-[16/10] items-center justify-center rounded-xl border border-dashed border-white/15 bg-white/[0.03]">
+        <span className="rounded-md bg-white/10 px-3 py-1 text-sm text-[var(--muted)]">
           Awaiting scan
         </span>
       </div>
@@ -82,7 +58,7 @@ function ScreenshotPanel({
 
   return (
     <a
-      className="group block border border-zinc-200 bg-zinc-50"
+      className="group block overflow-hidden rounded-xl border border-white/12 bg-black/20 lift"
       href={src}
       rel="noreferrer"
       target="_blank"
@@ -93,7 +69,7 @@ function ScreenshotPanel({
         className="aspect-[16/10] w-full object-cover object-top"
         src={src}
       />
-      <p className="border-t border-zinc-200 bg-white px-3 py-2 text-sm font-medium text-zinc-700 transition group-hover:text-zinc-950">
+      <p className="border-t border-white/10 px-3 py-2 text-sm font-medium text-[var(--muted-strong)] transition group-hover:text-white">
         {label}
       </p>
     </a>
@@ -113,7 +89,7 @@ async function readAuditResponse(response: Response) {
 
   throw new Error(
     isHtml
-      ? "The scanner API returned an HTML error page. Check the local dev server console and restart the app if needed."
+      ? "The scanner API returned an HTML error page. Check the dev server console and restart the app if needed."
       : compactText.slice(0, 240) || "The scanner API returned an unexpected response.",
   );
 }
@@ -121,30 +97,44 @@ async function readAuditResponse(response: Response) {
 export default function Home() {
   const [url, setUrl] = useState("https://example.com");
   const [status, setStatus] = useState<PageStatus>("idle");
-  const [selectedCategory, setSelectedCategory] = useState<Category | "All">(
-    "All",
-  );
+  const [selectedCategory, setSelectedCategory] = useState<FilterValue>("All");
   const [activeStep, setActiveStep] = useState(0);
   const [auditReport, setAuditReport] = useState<AuditRecord | null>(null);
   const [formError, setFormError] = useState("");
+  const [activeTab, setActiveTab] = useState<DetailTab>("overview");
+  const [copied, setCopied] = useState(false);
+
+  const issueCategories = useMemo<FilterValue[]>(() => {
+    if (!auditReport) return ["All"];
+    const present = Array.from(new Set(auditReport.issues.map((i) => i.category)));
+    return ["All", ...present];
+  }, [auditReport]);
 
   const filteredIssues = useMemo(() => {
     if (!auditReport || selectedCategory === "All") {
       return auditReport?.issues ?? [];
     }
-
     return auditReport.issues.filter((issue) => issue.category === selectedCategory);
   }, [auditReport, selectedCategory]);
 
+  const overall = auditReport?.scores.overall;
+  const isRunning = status === "running";
+
+  const detailTabs: TabItem[] = [
+    { id: "overview", label: "Overview" },
+    { id: "issues", label: "Issues", count: auditReport?.issues.length },
+    { id: "screenshots", label: "Screenshots" },
+    { id: "metrics", label: "Metrics", count: auditReport?.metrics.length },
+  ];
+
   async function runAudit() {
-    if (status === "running") {
-      return;
-    }
+    if (isRunning) return;
 
     setStatus("running");
     setFormError("");
     setAuditReport(null);
     setSelectedCategory("All");
+    setActiveTab("overview");
     setActiveStep(0);
 
     const stepTimer = window.setInterval(() => {
@@ -154,9 +144,7 @@ export default function Home() {
     try {
       const response = await fetch("/api/audits", {
         body: JSON.stringify({ url }),
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         method: "POST",
       });
       const data = await readAuditResponse(response);
@@ -183,329 +171,377 @@ export default function Home() {
     }
   }
 
+  function copyReportLink() {
+    if (!auditReport) return;
+    void navigator.clipboard.writeText(
+      `${window.location.origin}/api/audits?id=${auditReport.id}`,
+    );
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 1600);
+  }
+
   return (
-    <main className="min-h-screen bg-[#f6f5f1] text-zinc-950">
-      <section className="border-b border-zinc-200 bg-white">
-        <div className="mx-auto flex w-full max-w-7xl flex-col gap-4 px-5 py-5 lg:flex-row lg:items-center lg:justify-between">
-          <div>
-            <p className="text-sm font-semibold uppercase tracking-[0.18em] text-emerald-700">
-              SiteDoc AI
-            </p>
-            <h1 className="mt-2 text-3xl font-semibold tracking-normal text-zinc-950 md:text-4xl">
-              Website QA reports your team can act on.
-            </h1>
-          </div>
-          <div className="grid grid-cols-3 gap-2 text-center text-sm">
-            <div className="border border-zinc-200 bg-zinc-50 px-4 py-3">
-              <p className="font-semibold">2</p>
-              <p className="text-zinc-500">Viewports</p>
-            </div>
-            <div className="border border-zinc-200 bg-zinc-50 px-4 py-3">
-              <p className="font-semibold">Live</p>
-              <p className="text-zinc-500">Browser</p>
-            </div>
-            <div className="border border-zinc-200 bg-zinc-50 px-4 py-3">
-              <p className="font-semibold">JSON</p>
-              <p className="text-zinc-500">Saved</p>
-            </div>
-          </div>
+    <main className="mx-auto w-full max-w-7xl px-5 pb-16">
+      {/* Header */}
+      <header className="flex flex-col gap-3 py-7 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.22em] text-[var(--accent)]">
+            <span className="h-1.5 w-1.5 rounded-full bg-[var(--accent)]" aria-hidden />
+            SiteDoc AI
+          </p>
+          <h1 className="mt-2 text-3xl font-semibold tracking-tight text-white md:text-4xl">
+            Website QA reports your team can act on.
+          </h1>
+          <p className="mt-2 max-w-xl text-sm text-[var(--muted)]">
+            Scan a public URL for accessibility, SEO, performance, and UX issues —
+            deterministic checks plus AI explanation, in one shareable report.
+          </p>
         </div>
-      </section>
+      </header>
 
-      <section className="mx-auto grid w-full max-w-7xl gap-5 px-5 py-5 lg:grid-cols-[360px_1fr]">
-        <aside className="h-fit border border-zinc-200 bg-white p-4">
-          <div className="flex items-center justify-between border-b border-zinc-200 pb-4">
-            <div>
-              <h2 className="text-lg font-semibold">New audit</h2>
-              <p className="text-sm text-zinc-500">Scan a public page URL.</p>
+      <div className="grid gap-5 lg:grid-cols-[360px_1fr]">
+        {/* Audit form rail */}
+        <aside className="h-fit">
+          <GlassCard strong className="p-5">
+            <div className="flex items-center justify-between border-b border-white/10 pb-4">
+              <div>
+                <h2 className="text-lg font-semibold text-white">New audit</h2>
+                <p className="text-sm text-[var(--muted)]">Scan a public page URL.</p>
+              </div>
             </div>
-            <span className="border border-emerald-200 bg-emerald-50 px-2 py-1 text-xs font-semibold text-emerald-800">
-              Scanner
-            </span>
-          </div>
 
-          <form
-            className="mt-4 space-y-5"
-            onSubmit={(event: FormEvent<HTMLFormElement>) => {
-              event.preventDefault();
-              void runAudit();
-            }}
-          >
-            <label className="block">
-              <span className="text-sm font-medium text-zinc-700">
-                Website URL
-              </span>
-              <input
-                className="mt-2 h-11 w-full border border-zinc-300 bg-white px-3 text-sm outline-none transition focus:border-zinc-950"
-                onChange={(event) => setUrl(event.target.value)}
-                placeholder="https://your-site.com"
-                type="url"
-                value={url}
-              />
-            </label>
-
-            <fieldset className="space-y-3">
-              <legend className="text-sm font-medium text-zinc-700">
-                Audit modules
-              </legend>
-              {moduleOptions.map((label) => (
-                <label
-                  className="flex items-center justify-between border border-zinc-200 px-3 py-2 text-sm"
-                  key={label}
-                >
-                  <span>{label}</span>
-                  <input
-                    checked
-                    className="h-4 w-4 accent-zinc-950"
-                    readOnly
-                    type="checkbox"
-                  />
-                </label>
-              ))}
-            </fieldset>
-
-            {formError ? (
-              <p className="border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-800">
-                {formError}
-              </p>
-            ) : null}
-
-            <button
-              className="h-11 w-full bg-zinc-950 px-4 text-sm font-semibold text-white transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:bg-zinc-400"
-              disabled={status === "running"}
-              onClick={() => void runAudit()}
-              type="button"
+            <form
+              className="mt-4 space-y-5"
+              onSubmit={(event: FormEvent<HTMLFormElement>) => {
+                event.preventDefault();
+                void runAudit();
+              }}
             >
-              {status === "running" ? "Running audit..." : "Run audit"}
-            </button>
-          </form>
+              <label className="block">
+                <span className="text-sm font-medium text-[var(--muted-strong)]">
+                  Website URL
+                </span>
+                <input
+                  className="mt-2 h-11 w-full rounded-xl border border-white/15 bg-black/20 px-3 text-sm text-white outline-none transition placeholder:text-white/30 focus:border-[var(--accent)]"
+                  onChange={(event) => setUrl(event.target.value)}
+                  placeholder="https://your-site.com"
+                  type="url"
+                  value={url}
+                />
+              </label>
 
-          <div className="mt-5 border border-zinc-200 bg-zinc-50 p-3">
-            <p className="text-sm font-semibold">Scanner pipeline</p>
-            <div className="mt-3 space-y-2">
-              {auditSteps.map((step, index) => {
-                const isDone =
-                  status === "completed" ||
-                  status === "failed" ||
-                  (status === "running" && index <= activeStep);
-
-                return (
+              <fieldset className="space-y-2">
+                <legend className="text-sm font-medium text-[var(--muted-strong)]">
+                  Audit modules{" "}
+                  <span className="font-normal text-[var(--muted)]">· all run by default</span>
+                </legend>
+                {moduleOptions.map((label) => (
                   <div
-                    className="flex items-center gap-2 text-sm text-zinc-600"
-                    key={step}
+                    className="flex items-center justify-between rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-[var(--muted-strong)]"
+                    key={label}
                   >
-                    <span
-                      className={`h-2.5 w-2.5 rounded-full ${
-                        isDone ? "bg-emerald-600" : "bg-zinc-300"
-                      }`}
-                    />
-                    <span>{step}</span>
+                    <span>{label}</span>
+                    <span className="inline-flex items-center gap-1 rounded-md bg-emerald-500/15 px-1.5 py-0.5 text-[11px] font-semibold text-emerald-300">
+                      <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                      On
+                    </span>
                   </div>
-                );
-              })}
+                ))}
+              </fieldset>
+
+              {formError ? (
+                <p
+                  className="rounded-lg border border-rose-400/30 bg-rose-500/10 px-3 py-2 text-sm text-rose-200"
+                  role="alert"
+                >
+                  {formError}
+                </p>
+              ) : null}
+
+              <button
+                className="h-11 w-full rounded-xl bg-[var(--accent-strong)] px-4 text-sm font-semibold text-white shadow-[0_10px_30px_rgba(111,141,255,0.35)] transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
+                disabled={isRunning}
+                type="submit"
+              >
+                {isRunning ? "Running audit…" : "Run audit"}
+              </button>
+            </form>
+
+            <div className="mt-5 rounded-xl border border-white/10 bg-white/[0.03] p-3">
+              <p className="text-sm font-semibold text-white">Scanner pipeline</p>
+              <ol className="mt-3 space-y-2">
+                {auditSteps.map((step, index) => {
+                  const done =
+                    status === "completed" ||
+                    status === "failed" ||
+                    (isRunning && index <= activeStep);
+                  const current = isRunning && index === activeStep;
+                  return (
+                    <li className="flex items-center gap-2.5 text-sm" key={step}>
+                      <span
+                        className={cn(
+                          "h-2.5 w-2.5 shrink-0 rounded-full transition",
+                          done ? "bg-[var(--accent-2)]" : "bg-white/15",
+                          current && "ring-2 ring-[var(--accent-2)]/40",
+                        )}
+                        aria-hidden
+                      />
+                      <span className={done ? "text-[var(--muted-strong)]" : "text-[var(--muted)]"}>
+                        {step}
+                      </span>
+                    </li>
+                  );
+                })}
+              </ol>
             </div>
-          </div>
+          </GlassCard>
         </aside>
 
+        {/* Report column */}
         <section className="space-y-5">
-          <div className="border border-zinc-200 bg-white p-4">
-            <div className="flex flex-col gap-3 border-b border-zinc-200 pb-4 md:flex-row md:items-center md:justify-between">
-              <div>
-                <h2 className="text-xl font-semibold">Audit report</h2>
-                <p className="mt-1 break-all text-sm text-zinc-500">
-                  {auditReport?.finalUrl ?? url}
-                </p>
-                {auditReport ? (
-                  <p className="mt-1 text-xs font-medium uppercase tracking-[0.14em] text-zinc-400">
-                    {auditReport.status} / {auditReport.id}
+          <h2 className="sr-only">Audit results</h2>
+          {/* Command Center hero */}
+          <GlassCard strong className="overflow-hidden p-5">
+            <div className="flex flex-col gap-5 lg:flex-row lg:items-center">
+              <div className="flex items-center gap-5">
+                <div className="relative h-32 w-32 shrink-0 sm:h-36 sm:w-36">
+                  {status === "completed" && typeof overall === "number" ? (
+                    <HealthOrbMount score={overall} />
+                  ) : (
+                    <OrbFallback score={0} color="#6f8dff" />
+                  )}
+                </div>
+                <div>
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--muted)]">
+                    Overall health
                   </p>
-                ) : null}
+                  <p className="mt-1 text-5xl font-semibold tabular-nums text-white">
+                    {typeof overall === "number" ? overall : "--"}
+                    <span className="ml-1 text-lg font-normal text-[var(--muted)]">/100</span>
+                  </p>
+                  <p className="mt-1 break-all text-sm text-[var(--muted)]">
+                    {auditReport?.finalUrl ?? (isRunning ? "Scanning…" : url)}
+                  </p>
+                </div>
               </div>
+
+              <div className="flex-1">
+                {scoreBand(auditReport).length > 0 ? (
+                  <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
+                    {scoreBand(auditReport).map((card) => (
+                      <ScoreCard
+                        key={card.key}
+                        label={card.label}
+                        value={card.value}
+                        accent={card.accent}
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <p className="rounded-xl border border-white/10 bg-white/[0.03] p-4 text-sm text-[var(--muted)]">
+                    {isRunning
+                      ? "Capturing browser signals and scoring the page…"
+                      : "Run an audit to populate health scores. Accessibility, SEO, and performance engines arrive in upcoming updates."}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <div className="mt-5 flex flex-col gap-3 border-t border-white/10 pt-4 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-xs uppercase tracking-[0.14em] text-[var(--muted)]">
+                {auditReport ? (
+                  <>
+                    <span style={{ color: CATEGORY_ACCENT.Accessibility }}>●</span>{" "}
+                    {auditReport.status} · {auditReport.id}
+                  </>
+                ) : (
+                  "No audit run yet"
+                )}
+              </p>
               <div className="flex gap-2">
                 <button
-                  className="border border-zinc-300 px-3 py-2 text-sm font-medium transition hover:border-zinc-950 disabled:cursor-not-allowed disabled:text-zinc-400"
+                  className="rounded-xl border border-white/15 px-3 py-2 text-sm font-medium text-[var(--muted-strong)] transition hover:border-white/30 hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
                   disabled={!auditReport}
-                  onClick={() => {
-                    if (auditReport) {
-                      void navigator.clipboard.writeText(
-                        `${window.location.origin}/api/audits?id=${auditReport.id}`,
-                      );
-                    }
-                  }}
+                  onClick={copyReportLink}
                   type="button"
                 >
-                  Copy JSON link
+                  {copied ? "Copied!" : "Copy report link"}
                 </button>
                 <button
-                  className="border border-zinc-950 bg-zinc-950 px-3 py-2 text-sm font-medium text-white transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:border-zinc-300 disabled:bg-zinc-300"
+                  className="rounded-xl border border-white/10 px-3 py-2 text-sm font-medium text-[var(--muted)] disabled:cursor-not-allowed"
                   disabled
-                  title="PDF export will be added after report persistence is upgraded."
+                  title="PDF export arrives with report persistence."
                   type="button"
                 >
                   Export PDF
                 </button>
               </div>
             </div>
+          </GlassCard>
 
-            <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-              {getScoreCards(auditReport).map((score) => (
-                <div className="border border-zinc-200 bg-zinc-50" key={score.label}>
-                  <div className={`px-4 py-3 ${score.tone}`}>
-                    <p className="text-sm font-medium">{score.label}</p>
-                    <p className="mt-2 text-3xl font-semibold">
-                      {score.value === undefined ? "--" : score.value}
+          {/* Tabbed detail area */}
+          <GlassCard className="p-5">
+            <Tabs
+              tabs={detailTabs}
+              active={activeTab}
+              onChange={(id) => setActiveTab(id as DetailTab)}
+              idPrefix="detail"
+              label="Audit report sections"
+            />
+
+            <div className="mt-5">
+              {/* Overview */}
+              <section
+                role="tabpanel"
+                id="detail-panel-overview"
+                aria-labelledby="detail-tab-overview"
+                hidden={activeTab !== "overview"}
+                tabIndex={0}
+              >
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
+                    <h3 className="text-sm font-semibold text-white">Summary</h3>
+                    <p className="mt-2 text-sm leading-6 text-[var(--muted-strong)]">
+                      {auditReport?.summary ??
+                        "Run an audit to generate a summary from real browser signals."}
                     </p>
                   </div>
-                  <div className="h-1.5 bg-zinc-200">
-                    <div
-                      className="h-full bg-current transition-all"
-                      style={{
-                        width:
-                          score.value === undefined ? "0%" : `${score.value}%`,
-                      }}
-                    />
+                  <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
+                    <h3 className="text-sm font-semibold text-white">Next action</h3>
+                    <p className="mt-2 text-sm leading-6 text-[var(--muted-strong)]">
+                      {auditReport
+                        ? "Review the detected issues and screenshots. Accessibility, SEO, and AI remediation passes build on this scan."
+                        : "Start with a public URL that does not require login or private network access."}
+                    </p>
                   </div>
                 </div>
-              ))}
-            </div>
-          </div>
+              </section>
 
-          <div className="grid gap-5 xl:grid-cols-[1fr_320px]">
-            <div className="space-y-5">
-              <div className="border border-zinc-200 bg-white p-4">
-                <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                  <h2 className="text-lg font-semibold">Detected issues</h2>
-                  <div className="flex flex-wrap gap-2">
-                    {(["All", "Scanner", "Console", "Network"] as const).map(
-                      (category) => (
-                        <button
-                          className={`border px-3 py-1.5 text-sm font-medium transition ${
-                            selectedCategory === category
-                              ? "border-zinc-950 bg-zinc-950 text-white"
-                              : "border-zinc-300 bg-white hover:border-zinc-950"
-                          }`}
-                          key={category}
-                          onClick={() => setSelectedCategory(category)}
-                          type="button"
-                        >
-                          {category}
-                        </button>
-                      ),
-                    )}
-                  </div>
+              {/* Issues */}
+              <section
+                role="tabpanel"
+                id="detail-panel-issues"
+                aria-labelledby="detail-tab-issues"
+                hidden={activeTab !== "issues"}
+                tabIndex={0}
+              >
+                <div className="flex flex-wrap gap-1.5">
+                  {issueCategories.map((category) => (
+                    <button
+                      key={category}
+                      type="button"
+                      onClick={() => setSelectedCategory(category)}
+                      className={cn(
+                        "rounded-lg px-3 py-1.5 text-xs font-medium transition",
+                        selectedCategory === category
+                          ? "bg-white/90 text-zinc-900"
+                          : "border border-white/12 text-[var(--muted-strong)] hover:text-white",
+                      )}
+                    >
+                      {category}
+                    </button>
+                  ))}
                 </div>
 
                 <div className="mt-4 space-y-3">
                   {!auditReport ? (
-                    <p className="border border-zinc-200 bg-zinc-50 p-4 text-sm text-zinc-600">
-                      Run an audit to collect console errors, failed requests,
-                      and screenshot artifacts.
+                    <p className="rounded-xl border border-white/10 bg-white/[0.03] p-4 text-sm text-[var(--muted)]">
+                      Run an audit to collect console errors, failed requests, and
+                      screenshot artifacts.
                     </p>
                   ) : filteredIssues.length === 0 ? (
-                    <p className="border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">
-                      No console or network issues were detected in this scan.
+                    <p className="rounded-xl border border-emerald-400/25 bg-emerald-500/10 p-4 text-sm text-emerald-200">
+                      No issues were detected for this filter. 🎉
                     </p>
                   ) : (
                     filteredIssues.map((issue) => (
                       <article
-                        className="border border-zinc-200 bg-zinc-50 p-4"
+                        className="rounded-xl border border-white/10 bg-white/[0.03] p-4 lift"
                         key={issue.id}
                       >
                         <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-                          <div>
-                            <div className="flex flex-wrap gap-2">
-                              <span
-                                className={`border px-2 py-1 text-xs font-semibold ${categoryStyles[issue.category]}`}
-                              >
-                                {issue.category}
-                              </span>
-                              <span
-                                className={`px-2 py-1 text-xs font-semibold ${severityStyles[issue.severity]}`}
-                              >
-                                {issue.severity}
-                              </span>
+                          <div className="min-w-0">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <CategoryBadge category={issue.category} />
+                              <SeverityBadge severity={issue.severity} />
                             </div>
-                            <h3 className="mt-3 text-base font-semibold">
+                            <h3 className="mt-3 text-base font-semibold text-white">
                               {issue.title}
                             </h3>
                           </div>
-                          <code className="w-full border border-zinc-200 bg-white px-2 py-1 text-xs text-zinc-600 md:w-auto">
-                            {issue.selector}
-                          </code>
+                          {issue.selector ? (
+                            <code className="w-full shrink-0 rounded-lg border border-white/10 bg-black/30 px-2 py-1 text-xs text-[var(--muted-strong)] md:w-auto md:max-w-[40%] md:truncate">
+                              {issue.selector}
+                            </code>
+                          ) : null}
                         </div>
-                        <p className="mt-3 break-words text-sm leading-6 text-zinc-600">
+                        <p className="mt-3 break-words text-sm leading-6 text-[var(--muted)]">
                           {issue.detail}
                         </p>
-                        <p className="mt-3 border-l-2 border-emerald-600 pl-3 text-sm leading-6 text-zinc-800">
+                        <p
+                          className="mt-3 border-l-2 pl-3 text-sm leading-6 text-[var(--muted-strong)]"
+                          style={{ borderColor: "var(--accent-2)" }}
+                        >
                           {issue.fix}
                         </p>
                       </article>
                     ))
                   )}
                 </div>
-              </div>
-            </div>
+              </section>
 
-            <aside className="space-y-5">
-              <div className="border border-zinc-200 bg-white p-4">
-                <h2 className="text-lg font-semibold">Screenshots</h2>
-                <div className="mt-4 space-y-3">
-                  <ScreenshotPanel
-                    label="Desktop 1440px"
-                    src={auditReport?.screenshots.desktop}
-                  />
-                  <ScreenshotPanel
-                    label="Mobile 390px"
-                    src={auditReport?.screenshots.mobile}
-                  />
+              {/* Screenshots */}
+              <section
+                role="tabpanel"
+                id="detail-panel-screenshots"
+                aria-labelledby="detail-tab-screenshots"
+                hidden={activeTab !== "screenshots"}
+                tabIndex={0}
+              >
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <ScreenshotPanel label="Desktop · 1440px" src={auditReport?.screenshots.desktop} />
+                  <ScreenshotPanel label="Mobile · 390px" src={auditReport?.screenshots.mobile} />
                 </div>
-              </div>
+              </section>
 
-              <div className="border border-zinc-200 bg-white p-4">
-                <h2 className="text-lg font-semibold">Scan metrics</h2>
-                <div className="mt-4 space-y-3">
-                  {auditReport?.metrics.length ? (
-                    auditReport.metrics.map((metric) => (
-                      <div className="border border-zinc-200 bg-zinc-50 p-3" key={metric.label}>
+              {/* Metrics */}
+              <section
+                role="tabpanel"
+                id="detail-panel-metrics"
+                aria-labelledby="detail-tab-metrics"
+                hidden={activeTab !== "metrics"}
+                tabIndex={0}
+              >
+                {auditReport?.metrics.length ? (
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    {auditReport.metrics.map((metric) => (
+                      <div
+                        className="rounded-xl border border-white/10 bg-white/[0.03] p-4"
+                        key={metric.label}
+                      >
                         <div className="flex items-center justify-between gap-3">
-                          <p className="text-sm font-semibold">{metric.label}</p>
-                          <p className="text-sm font-semibold text-zinc-950">
-                            {metric.value}
+                          <p className="text-sm font-semibold text-[var(--muted-strong)]">
+                            {metric.label}
                           </p>
+                          <p className="text-sm font-semibold text-white">{metric.value}</p>
                         </div>
-                        <p className="mt-2 break-words text-xs leading-5 text-zinc-500">
+                        <p className="mt-2 break-words text-xs leading-5 text-[var(--muted)]">
                           {metric.detail}
                         </p>
                       </div>
-                    ))
-                  ) : (
-                    <p className="text-sm leading-6 text-zinc-600">
-                      Run an audit to save scan timing, final URL, and browser
-                      signal metrics.
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              <div className="border border-zinc-200 bg-white p-4">
-                <h2 className="text-lg font-semibold">Scanner summary</h2>
-                <p className="mt-3 text-sm leading-6 text-zinc-600">
-                  {auditReport?.summary ??
-                    "Run an audit to generate a scanner summary from real browser signals."}
-                </p>
-                <div className="mt-4 border border-zinc-200 bg-zinc-50 p-3">
-                  <p className="text-sm font-semibold">Next action</p>
-                  <p className="mt-2 text-sm text-zinc-600">
-                    {auditReport
-                      ? "Use the screenshots, console errors, and failed request list as the input for accessibility, SEO, and AI remediation passes."
-                      : "Start with a public URL that does not require login or private network access."}
+                    ))}
+                  </div>
+                ) : (
+                  <p className="rounded-xl border border-white/10 bg-white/[0.03] p-4 text-sm text-[var(--muted)]">
+                    Run an audit to save scan timing, final URL, and browser signal
+                    metrics.
                   </p>
-                </div>
-              </div>
-            </aside>
-          </div>
+                )}
+              </section>
+            </div>
+          </GlassCard>
         </section>
-      </section>
+      </div>
     </main>
   );
 }

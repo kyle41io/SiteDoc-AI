@@ -1,30 +1,149 @@
 @import "tailwindcss";
 
+/* ============================================================
+   SiteDoc AI — "Aurora Glass" design system
+   Dark, premium surface with a layered aurora gradient backdrop,
+   frosted-glass panels, and motion that respects user preferences.
+   ============================================================ */
+
 :root {
-  --background: #f6f5f1;
-  --foreground: #18181b;
+  color-scheme: dark;
+
+  --background: #070912;
+  --background-soft: #0c1024;
+  --foreground: #e9ecf5;
+  --muted: #9aa3bd;
+  --muted-strong: #c3cae0;
+
+  /* Frosted glass surfaces */
+  --glass-bg: rgba(255, 255, 255, 0.055);
+  --glass-bg-strong: rgba(255, 255, 255, 0.09);
+  --glass-border: rgba(255, 255, 255, 0.12);
+  --glass-border-strong: rgba(255, 255, 255, 0.22);
+
+  /* Brand accents */
+  --accent: #6f8dff;
+  /* Darker accent for filled surfaces that carry white text — reaches AA
+     contrast (~5.4:1 with white), unlike the lighter --accent (~3:1). */
+  --accent-strong: #4c5fd0;
+  --accent-2: #21d4a8;
+
+  /* Category accents */
+  --cat-accessibility: #34d399;
+  --cat-seo: #a78bfa;
+  --cat-performance: #fbbf24;
+  --cat-ux: #60a5fa;
+  --cat-bestpractices: #2dd4bf;
+  --cat-console: #fb7185;
+  --cat-network: #38bdf8;
+  --cat-scanner: #cbd5e1;
+
+  /* Severity */
+  --sev-high: #fb7185;
+  --sev-medium: #fbbf24;
+  --sev-low: #94a3b8;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: Inter, ui-sans-serif, system-ui, sans-serif;
-  --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  --color-muted: var(--muted);
+  --color-accent: var(--accent);
+  --color-accent-2: var(--accent-2);
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: ui-monospace, "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+}
+
+html {
+  min-height: 100%;
 }
 
 body {
+  min-height: 100%;
   background: var(--background);
   color: var(--foreground);
-  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
-    "Segoe UI", sans-serif;
+  font-family: var(--font-inter), ui-sans-serif, system-ui, -apple-system,
+    BlinkMacSystemFont, "Segoe UI", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
-button,
-input {
-  border-radius: 6px;
+/* Aurora gradient-mesh backdrop, fixed behind all content. */
+.aurora-bg {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(48% 58% at 14% 2%, rgba(111, 141, 255, 0.28), transparent 60%),
+    radial-gradient(42% 52% at 88% 8%, rgba(167, 139, 250, 0.24), transparent 60%),
+    radial-gradient(55% 62% at 50% 108%, rgba(33, 212, 168, 0.2), transparent 60%),
+    var(--background);
+  animation: aurora-drift 26s ease-in-out infinite alternate;
+}
+
+@keyframes aurora-drift {
+  0% {
+    background-position: 0% 0%, 100% 0%, 50% 100%, 0 0;
+    filter: hue-rotate(0deg);
+  }
+  100% {
+    background-position: 6% 4%, 92% 6%, 46% 96%, 0 0;
+    filter: hue-rotate(-12deg);
+  }
+}
+
+/* Frosted glass surface. */
+.glass {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: blur(14px) saturate(140%);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+}
+
+.glass-strong {
+  background: var(--glass-bg-strong);
+  border: 1px solid var(--glass-border-strong);
+  backdrop-filter: blur(18px) saturate(150%);
+  -webkit-backdrop-filter: blur(18px) saturate(150%);
+}
+
+/* A subtle hover-lift used on interactive cards. */
+.lift {
+  transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease;
+}
+.lift:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.45);
+  border-color: var(--glass-border-strong);
 }
 
 ::selection {
-  background: #bbf7d0;
-  color: #18181b;
+  background: rgba(111, 141, 255, 0.35);
+  color: #ffffff;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Respect users who prefer reduced motion: kill drift, lift, and long
+   transitions. The 3D orb checks this preference independently in JS. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+  .aurora-bg {
+    animation: none;
+  }
+  .lift:hover {
+    transform: none;
+  }
 }
