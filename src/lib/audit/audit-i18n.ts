@@ -24,6 +24,46 @@ export type AuditStrings = {
   metricFinalUrlLabel: string;
   runningSummary: string;
   failedSummary: string;
+  seo: SeoStrings;
+  performance: PerformanceStrings;
+};
+
+export type PerformanceStrings = {
+  slowLoad: (seconds: string) => string;
+  slowLoadFix: string;
+  slowTtfb: (ms: number) => string;
+  slowTtfbFix: string;
+  heavyPage: (mb: string) => string;
+  heavyPageFix: string;
+  tooManyRequests: (count: number) => string;
+  tooManyRequestsFix: string;
+  heavyImages: (mb: string) => string;
+  heavyImagesFix: string;
+  renderBlocking: (count: number) => string;
+  renderBlockingFix: string;
+};
+
+export type SeoStrings = {
+  titleMissing: string;
+  titleMissingFix: string;
+  descriptionMissing: string;
+  descriptionMissingFix: string;
+  h1Missing: string;
+  h1MissingFix: string;
+  h1Multiple: string;
+  h1MultipleFix: string;
+  canonicalMissing: string;
+  canonicalMissingFix: string;
+  openGraph: string;
+  openGraphFix: string;
+  langMissing: string;
+  langMissingFix: string;
+  viewportMissing: string;
+  viewportMissingFix: string;
+  noindex: string;
+  noindexFix: string;
+  imageAlt: (covered: number, total: number) => string;
+  imageAltFix: string;
 };
 
 const en: AuditStrings = {
@@ -52,6 +92,56 @@ const en: AuditStrings = {
   runningSummary: "Scanner is running.",
   failedSummary:
     "The scanner could not complete this audit. Check the URL, site availability, TLS configuration, and browser runtime logs.",
+  seo: {
+    titleMissing: "Missing page title",
+    titleMissingFix:
+      "Add a unique, descriptive <title> (around 50–60 characters) summarizing the page.",
+    descriptionMissing: "Missing meta description",
+    descriptionMissingFix:
+      "Add a <meta name=\"description\"> (~150 characters) so search engines can summarize the page.",
+    h1Missing: "No H1 heading",
+    h1MissingFix: "Add a single, descriptive <h1> stating the page's main topic.",
+    h1Multiple: "Multiple H1 headings",
+    h1MultipleFix: "Use exactly one <h1> per page; demote the rest to <h2>/<h3>.",
+    canonicalMissing: "Missing canonical link",
+    canonicalMissingFix:
+      "Add <link rel=\"canonical\"> to consolidate duplicate URLs and avoid split ranking signals.",
+    openGraph: "Incomplete Open Graph tags",
+    openGraphFix:
+      "Add og:title, og:description, and og:image so shared links render rich previews.",
+    langMissing: "Missing html lang attribute",
+    langMissingFix:
+      "Set <html lang=\"…\"> so assistive tech and search engines detect the page language.",
+    viewportMissing: "Missing viewport meta",
+    viewportMissingFix:
+      "Add <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"> for mobile rendering.",
+    noindex: "Page blocked from search indexing",
+    noindexFix:
+      "Remove the noindex directive if this page should appear in search results.",
+    imageAlt: (covered, total) => `Image alt coverage: ${covered}/${total}`,
+    imageAltFix:
+      "Add descriptive alt text to every meaningful <img>; use empty alt for decorative images.",
+  },
+  performance: {
+    slowLoad: (s) => `Slow page load: ${s}s`,
+    slowLoadFix:
+      "Defer non-critical JS, compress assets, and lazy-load below-the-fold content to cut load time.",
+    slowTtfb: (ms) => `Slow server response (TTFB ${ms}ms)`,
+    slowTtfbFix:
+      "Reduce server processing, enable caching/CDN, and minimize redirects to lower time to first byte.",
+    heavyPage: (mb) => `Large page weight: ${mb} MB transferred`,
+    heavyPageFix:
+      "Compress images, minify and split bundles, and remove unused code to shrink total transfer.",
+    tooManyRequests: (n) => `High request count: ${n} requests`,
+    tooManyRequestsFix:
+      "Bundle assets, inline small resources, and trim third-party scripts to reduce round-trips.",
+    heavyImages: (mb) => `Heavy images: ${mb} MB`,
+    heavyImagesFix:
+      "Serve responsive sizes in modern formats (WebP/AVIF) and lazy-load offscreen images.",
+    renderBlocking: (n) => `Render-blocking stylesheets: ${n}`,
+    renderBlockingFix:
+      "Inline critical CSS and load the rest asynchronously so first paint isn't blocked.",
+  },
 };
 
 const vi: AuditStrings = {
@@ -80,6 +170,56 @@ const vi: AuditStrings = {
   runningSummary: "Trình quét đang chạy.",
   failedSummary:
     "Trình quét không thể hoàn tất phân tích này. Hãy kiểm tra URL, tình trạng hoạt động của trang, cấu hình TLS và nhật ký trình duyệt.",
+  seo: {
+    titleMissing: "Thiếu tiêu đề trang",
+    titleMissingFix:
+      "Thêm thẻ <title> mô tả, duy nhất (khoảng 50–60 ký tự) tóm tắt nội dung trang.",
+    descriptionMissing: "Thiếu meta description",
+    descriptionMissingFix:
+      "Thêm <meta name=\"description\"> (~150 ký tự) để công cụ tìm kiếm tóm tắt được trang.",
+    h1Missing: "Không có tiêu đề H1",
+    h1MissingFix: "Thêm một thẻ <h1> mô tả chủ đề chính của trang.",
+    h1Multiple: "Có nhiều tiêu đề H1",
+    h1MultipleFix: "Mỗi trang chỉ nên có đúng một <h1>; hạ các thẻ còn lại xuống <h2>/<h3>.",
+    canonicalMissing: "Thiếu liên kết canonical",
+    canonicalMissingFix:
+      "Thêm <link rel=\"canonical\"> để hợp nhất các URL trùng lặp và tránh phân tán tín hiệu xếp hạng.",
+    openGraph: "Thẻ Open Graph chưa đầy đủ",
+    openGraphFix:
+      "Thêm og:title, og:description và og:image để liên kết chia sẻ hiển thị bản xem trước phong phú.",
+    langMissing: "Thiếu thuộc tính lang trên thẻ html",
+    langMissingFix:
+      "Đặt <html lang=\"…\"> để công nghệ hỗ trợ và công cụ tìm kiếm nhận diện ngôn ngữ trang.",
+    viewportMissing: "Thiếu thẻ meta viewport",
+    viewportMissingFix:
+      "Thêm <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"> để hiển thị tốt trên di động.",
+    noindex: "Trang bị chặn lập chỉ mục tìm kiếm",
+    noindexFix:
+      "Gỡ chỉ thị noindex nếu trang này nên xuất hiện trong kết quả tìm kiếm.",
+    imageAlt: (covered, total) => `Độ phủ alt cho ảnh: ${covered}/${total}`,
+    imageAltFix:
+      "Thêm alt mô tả cho mọi <img> có ý nghĩa; dùng alt rỗng cho ảnh trang trí.",
+  },
+  performance: {
+    slowLoad: (s) => `Trang tải chậm: ${s}s`,
+    slowLoadFix:
+      "Hoãn JS không quan trọng, nén tài nguyên và tải trễ nội dung dưới màn hình để giảm thời gian tải.",
+    slowTtfb: (ms) => `Máy chủ phản hồi chậm (TTFB ${ms}ms)`,
+    slowTtfbFix:
+      "Giảm xử lý phía máy chủ, bật cache/CDN và hạn chế chuyển hướng để giảm thời gian phản hồi đầu tiên.",
+    heavyPage: (mb) => `Trang nặng: đã truyền ${mb} MB`,
+    heavyPageFix:
+      "Nén ảnh, rút gọn và tách bundle, loại bỏ mã không dùng để giảm tổng dung lượng truyền.",
+    tooManyRequests: (n) => `Quá nhiều yêu cầu: ${n} yêu cầu`,
+    tooManyRequestsFix:
+      "Gộp tài nguyên, nội tuyến tài nguyên nhỏ và loại bỏ script bên thứ ba để giảm số lượt request.",
+    heavyImages: (mb) => `Ảnh nặng: ${mb} MB`,
+    heavyImagesFix:
+      "Phục vụ kích thước phù hợp ở định dạng hiện đại (WebP/AVIF) và tải trễ ảnh ngoài màn hình.",
+    renderBlocking: (n) => `CSS chặn hiển thị: ${n}`,
+    renderBlockingFix:
+      "Nội tuyến CSS quan trọng và tải phần còn lại bất đồng bộ để không chặn lần vẽ đầu tiên.",
+  },
 };
 
 const es: AuditStrings = {
@@ -108,6 +248,56 @@ const es: AuditStrings = {
   runningSummary: "El escáner está en ejecución.",
   failedSummary:
     "El escáner no pudo completar este análisis. Revisa la URL, la disponibilidad del sitio, la configuración TLS y los registros del navegador.",
+  seo: {
+    titleMissing: "Falta el título de la página",
+    titleMissingFix:
+      "Añade un <title> único y descriptivo (unos 50–60 caracteres) que resuma la página.",
+    descriptionMissing: "Falta la meta descripción",
+    descriptionMissingFix:
+      "Añade un <meta name=\"description\"> (~150 caracteres) para que los buscadores resuman la página.",
+    h1Missing: "Sin encabezado H1",
+    h1MissingFix: "Añade un único <h1> descriptivo que indique el tema principal de la página.",
+    h1Multiple: "Varios encabezados H1",
+    h1MultipleFix: "Usa exactamente un <h1> por página; baja los demás a <h2>/<h3>.",
+    canonicalMissing: "Falta el enlace canónico",
+    canonicalMissingFix:
+      "Añade <link rel=\"canonical\"> para consolidar URLs duplicadas y evitar dividir las señales de posicionamiento.",
+    openGraph: "Etiquetas Open Graph incompletas",
+    openGraphFix:
+      "Añade og:title, og:description y og:image para que los enlaces compartidos muestren vistas previas enriquecidas.",
+    langMissing: "Falta el atributo lang en html",
+    langMissingFix:
+      "Define <html lang=\"…\"> para que la tecnología de asistencia y los buscadores detecten el idioma.",
+    viewportMissing: "Falta la meta viewport",
+    viewportMissingFix:
+      "Añade <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"> para el renderizado móvil.",
+    noindex: "Página bloqueada para la indexación",
+    noindexFix:
+      "Quita la directiva noindex si esta página debe aparecer en los resultados de búsqueda.",
+    imageAlt: (covered, total) => `Cobertura de alt en imágenes: ${covered}/${total}`,
+    imageAltFix:
+      "Añade texto alt descriptivo a cada <img> relevante; usa alt vacío para imágenes decorativas.",
+  },
+  performance: {
+    slowLoad: (s) => `Carga lenta de la página: ${s}s`,
+    slowLoadFix:
+      "Aplaza el JS no crítico, comprime los recursos y carga en diferido el contenido bajo el pliegue para reducir el tiempo de carga.",
+    slowTtfb: (ms) => `Respuesta del servidor lenta (TTFB ${ms}ms)`,
+    slowTtfbFix:
+      "Reduce el procesamiento del servidor, activa caché/CDN y minimiza las redirecciones para bajar el tiempo hasta el primer byte.",
+    heavyPage: (mb) => `Página pesada: ${mb} MB transferidos`,
+    heavyPageFix:
+      "Comprime imágenes, minifica y divide los bundles, y elimina código sin usar para reducir la transferencia total.",
+    tooManyRequests: (n) => `Muchas solicitudes: ${n} solicitudes`,
+    tooManyRequestsFix:
+      "Agrupa recursos, incrusta los pequeños y elimina scripts de terceros para reducir las idas y vueltas.",
+    heavyImages: (mb) => `Imágenes pesadas: ${mb} MB`,
+    heavyImagesFix:
+      "Sirve tamaños adaptables en formatos modernos (WebP/AVIF) y carga en diferido las imágenes fuera de pantalla.",
+    renderBlocking: (n) => `Hojas de estilo que bloquean el render: ${n}`,
+    renderBlockingFix:
+      "Incrusta el CSS crítico y carga el resto de forma asíncrona para no bloquear el primer pintado.",
+  },
 };
 
 const zh: AuditStrings = {
@@ -134,6 +324,46 @@ const zh: AuditStrings = {
   runningSummary: "扫描器正在运行。",
   failedSummary:
     "扫描器无法完成本次审计。请检查 URL、站点可用性、TLS 配置以及浏览器运行日志。",
+  seo: {
+    titleMissing: "缺少页面标题",
+    titleMissingFix: "添加唯一且有描述性的 <title>（约 50–60 个字符）来概括页面内容。",
+    descriptionMissing: "缺少 meta description",
+    descriptionMissingFix:
+      "添加 <meta name=\"description\">（约 150 个字符），便于搜索引擎概括页面。",
+    h1Missing: "没有 H1 标题",
+    h1MissingFix: "添加一个有描述性的 <h1>，说明页面的主要主题。",
+    h1Multiple: "存在多个 H1 标题",
+    h1MultipleFix: "每个页面只应有一个 <h1>，将其余降级为 <h2>/<h3>。",
+    canonicalMissing: "缺少 canonical 链接",
+    canonicalMissingFix:
+      "添加 <link rel=\"canonical\"> 以合并重复 URL，避免分散排名信号。",
+    openGraph: "Open Graph 标签不完整",
+    openGraphFix:
+      "添加 og:title、og:description 和 og:image，使分享链接显示丰富预览。",
+    langMissing: "html 缺少 lang 属性",
+    langMissingFix: "设置 <html lang=\"…\">，便于辅助技术和搜索引擎识别页面语言。",
+    viewportMissing: "缺少 viewport meta",
+    viewportMissingFix:
+      "添加 <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"> 以适配移动端渲染。",
+    noindex: "页面被禁止搜索索引",
+    noindexFix: "如果该页面应出现在搜索结果中，请移除 noindex 指令。",
+    imageAlt: (covered, total) => `图片 alt 覆盖率：${covered}/${total}`,
+    imageAltFix: "为每个有意义的 <img> 添加描述性 alt；装饰性图片使用空 alt。",
+  },
+  performance: {
+    slowLoad: (s) => `页面加载缓慢：${s}s`,
+    slowLoadFix: "延迟加载非关键 JS、压缩资源并对首屏以下内容懒加载，以缩短加载时间。",
+    slowTtfb: (ms) => `服务器响应缓慢（TTFB ${ms}ms）`,
+    slowTtfbFix: "减少服务器处理、启用缓存/CDN 并尽量减少重定向，以降低首字节时间。",
+    heavyPage: (mb) => `页面体积过大：已传输 ${mb} MB`,
+    heavyPageFix: "压缩图片、压缩并拆分打包文件、移除未使用代码，以减小总传输量。",
+    tooManyRequests: (n) => `请求过多：${n} 个请求`,
+    tooManyRequestsFix: "合并资源、内联小资源并移除第三方脚本，以减少往返请求。",
+    heavyImages: (mb) => `图片过重：${mb} MB`,
+    heavyImagesFix: "以现代格式（WebP/AVIF）提供自适应尺寸，并对屏幕外图片懒加载。",
+    renderBlocking: (n) => `阻塞渲染的样式表：${n}`,
+    renderBlockingFix: "内联关键 CSS 并异步加载其余部分，避免阻塞首次绘制。",
+  },
 };
 
 const ja: AuditStrings = {
@@ -162,6 +392,55 @@ const ja: AuditStrings = {
   runningSummary: "スキャナーを実行中です。",
   failedSummary:
     "スキャナーはこの監査を完了できませんでした。URL、サイトの可用性、TLS 設定、ブラウザの実行ログを確認してください。",
+  seo: {
+    titleMissing: "ページタイトルがありません",
+    titleMissingFix:
+      "ページを要約する一意で説明的な <title>（およそ 50〜60 文字）を追加してください。",
+    descriptionMissing: "メタディスクリプションがありません",
+    descriptionMissingFix:
+      "検索エンジンがページを要約できるよう <meta name=\"description\">（約 150 文字）を追加してください。",
+    h1Missing: "H1 見出しがありません",
+    h1MissingFix: "ページの主題を示す説明的な <h1> を 1 つ追加してください。",
+    h1Multiple: "H1 見出しが複数あります",
+    h1MultipleFix: "1 ページにつき <h1> は 1 つだけにし、残りは <h2>/<h3> に下げてください。",
+    canonicalMissing: "canonical リンクがありません",
+    canonicalMissingFix:
+      "<link rel=\"canonical\"> を追加して重複 URL を統合し、ランキング信号の分散を防いでください。",
+    openGraph: "Open Graph タグが不完全です",
+    openGraphFix:
+      "og:title・og:description・og:image を追加して、共有リンクでリッチプレビューが表示されるようにしてください。",
+    langMissing: "html の lang 属性がありません",
+    langMissingFix:
+      "<html lang=\"…\"> を設定して、支援技術と検索エンジンがページの言語を判別できるようにしてください。",
+    viewportMissing: "viewport メタがありません",
+    viewportMissingFix:
+      "モバイル表示のために <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"> を追加してください。",
+    noindex: "ページが検索インデックスから除外されています",
+    noindexFix: "このページを検索結果に表示すべきなら noindex 指定を削除してください。",
+    imageAlt: (covered, total) => `画像の alt 網羅率: ${covered}/${total}`,
+    imageAltFix:
+      "意味のある <img> すべてに説明的な alt を追加し、装飾画像には空の alt を使用してください。",
+  },
+  performance: {
+    slowLoad: (s) => `ページ読み込みが遅い: ${s}s`,
+    slowLoadFix:
+      "重要でない JS を遅延し、アセットを圧縮し、ファーストビュー外のコンテンツを遅延読み込みして読み込み時間を短縮してください。",
+    slowTtfb: (ms) => `サーバー応答が遅い（TTFB ${ms}ms）`,
+    slowTtfbFix:
+      "サーバー処理を減らし、キャッシュ/CDN を有効にし、リダイレクトを最小限にして TTFB を短縮してください。",
+    heavyPage: (mb) => `ページが重い: ${mb} MB 転送`,
+    heavyPageFix:
+      "画像を圧縮し、バンドルを最小化・分割し、未使用コードを削除して総転送量を削減してください。",
+    tooManyRequests: (n) => `リクエストが多すぎます: ${n} 件`,
+    tooManyRequestsFix:
+      "アセットをまとめ、小さなリソースをインライン化し、サードパーティスクリプトを削減して往復を減らしてください。",
+    heavyImages: (mb) => `画像が重い: ${mb} MB`,
+    heavyImagesFix:
+      "最新フォーマット（WebP/AVIF）でレスポンシブなサイズを配信し、画面外の画像を遅延読み込みしてください。",
+    renderBlocking: (n) => `レンダリングを妨げるスタイルシート: ${n}`,
+    renderBlockingFix:
+      "重要な CSS をインライン化し、残りを非同期で読み込んで初回描画をブロックしないようにしてください。",
+  },
 };
 
 const AUDIT_STRINGS: Record<Locale, AuditStrings> = { en, vi, es, zh, ja };

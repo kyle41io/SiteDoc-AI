@@ -479,9 +479,11 @@ export default function Home() {
                             </code>
                           ) : null}
                         </div>
-                        <p className="mt-3 break-words text-sm leading-6 text-[var(--muted)]">
-                          {issue.detail}
-                        </p>
+                        {issue.detail ? (
+                          <p className="mt-3 break-words text-sm leading-6 text-[var(--muted)]">
+                            {issue.detail}
+                          </p>
+                        ) : null}
                         <p
                           className="mt-3 border-l-2 pl-3 text-sm leading-6 text-[var(--muted-strong)]"
                           style={{ borderColor: "var(--accent-2)" }}

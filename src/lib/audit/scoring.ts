@@ -52,16 +52,29 @@ export function accessibilityScore(counts: AxeImpactCounts): number {
 }
 
 /**
- * Blends the deterministic "technical" score (scan/console/network) with the
- * accessibility score into the headline overall. When accessibility has not
- * run yet, the technical score stands alone. Weights rebalance as more category
- * engines (SEO, performance) come online.
+ * Headline overall score: a weighted average over whichever category scores are
+ * present. The deterministic "technical" signal (scan/console/network) is always
+ * present; accessibility/SEO/performance join as their engines come online, and
+ * the weights are normalized over the present set so the blend always sums to 1.
  */
-export function overallScore(parts: { technical: number; accessibility?: number }): number {
-  if (typeof parts.accessibility === "number") {
-    return Math.round(parts.accessibility * 0.5 + parts.technical * 0.5);
-  }
-  return Math.round(parts.technical);
+export function overallScore(parts: {
+  technical: number;
+  accessibility?: number;
+  seo?: number;
+  performance?: number;
+}): number {
+  const weighted: Array<[number | undefined, number]> = [
+    [parts.accessibility, 0.3],
+    [parts.seo, 0.25],
+    [parts.performance, 0.25],
+    [parts.technical, 0.2],
+  ];
+  const present = weighted.filter(
+    (entry): entry is [number, number] => typeof entry[0] === "number",
+  );
+  const totalWeight = present.reduce((sum, [, weight]) => sum + weight, 0);
+  const blended = present.reduce((sum, [value, weight]) => sum + value * weight, 0);
+  return Math.round(blended / totalWeight);
 }
 
 /**

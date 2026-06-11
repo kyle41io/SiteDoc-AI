@@ -25,7 +25,72 @@ import {
   runAxe,
   type AxeViolation,
 } from "@/lib/audit/accessibility";
+import { analyzeSeo, type SeoSnapshot } from "@/lib/audit/seo";
+import { analyzePerformance, type PerfSnapshot } from "@/lib/audit/performance";
 import { createRequestSafetyGuard } from "@/lib/url-validation";
+
+/** Extract Navigation/Resource Timing facts from the loaded page. */
+async function extractPerfSnapshot(page: Page): Promise<PerfSnapshot> {
+  return page.evaluate(() => {
+    const nav = performance.getEntriesByType("navigation")[0] as
+      | PerformanceNavigationTiming
+      | undefined;
+    const resources = performance.getEntriesByType(
+      "resource",
+    ) as PerformanceResourceTiming[];
+
+    let totalTransferBytes = nav?.transferSize ?? 0;
+    let imageBytes = 0;
+    for (const r of resources) {
+      // transferSize is 0 for cross-origin resources without Timing-Allow-Origin,
+      // so these totals can undercount third-party assets (documented v1 limit).
+      totalTransferBytes += r.transferSize || 0;
+      if (r.initiatorType === "img") imageBytes += r.transferSize || 0;
+    }
+
+    // Count real stylesheets from the DOM — Resource Timing's "link" initiator
+    // also covers preload/icon/preconnect/manifest, which would overcount.
+    const stylesheetCount = document.querySelectorAll('link[rel~="stylesheet"]').length;
+
+    return {
+      ttfbMs: nav ? nav.responseStart : 0,
+      // loadEventEnd is 0 if read before the load event fires (e.g. networkidle
+      // timed out); fall back to elapsed time so a slow page isn't reported fast.
+      loadMs: nav && nav.loadEventEnd > 0 ? nav.loadEventEnd : performance.now(),
+      resourceCount: resources.length,
+      totalTransferBytes,
+      imageBytes,
+      stylesheetCount,
+    };
+  });
+}
+
+/** Extract SEO-relevant DOM facts from the loaded page. */
+async function extractSeoSnapshot(page: Page): Promise<SeoSnapshot> {
+  return page.evaluate(() => {
+    const meta = (name: string) =>
+      (document.querySelector(`meta[name="${name}"]`) as HTMLMetaElement | null)?.content ?? null;
+    const hasProperty = (property: string) =>
+      !!document.querySelector(`meta[property="${property}"]`);
+    const images = Array.from(document.querySelectorAll("img"));
+    const robots = (meta("robots") ?? "").toLowerCase();
+
+    return {
+      title: document.title || null,
+      metaDescription: meta("description"),
+      h1Count: document.querySelectorAll("h1").length,
+      hasCanonical: !!document.querySelector('link[rel="canonical"]'),
+      ogTitle: hasProperty("og:title"),
+      ogDescription: hasProperty("og:description"),
+      ogImage: hasProperty("og:image"),
+      htmlLang: document.documentElement.getAttribute("lang"),
+      hasViewport: !!document.querySelector('meta[name="viewport"]'),
+      robotsNoindex: robots.includes("noindex"),
+      imagesTotal: images.length,
+      imagesWithAlt: images.filter((img) => img.hasAttribute("alt")).length,
+    };
+  });
+}
 
 type ScanOptions = {
   auditId: string;
@@ -160,7 +225,12 @@ async function captureViewport(
     failedRequests: FailedRequest[];
   },
   analyze?: { language?: string },
-): Promise<{ finalUrl: string; violations: AxeViolation[] | null }> {
+): Promise<{
+  finalUrl: string;
+  violations: AxeViolation[] | null;
+  seo: SeoSnapshot | null;
+  perf: PerfSnapshot | null;
+}> {
   let context: BrowserContext | undefined;
 
   try {
@@ -179,13 +249,15 @@ async function captureViewport(
     await page.waitForLoadState("networkidle", { timeout: 5_000 }).catch(() => undefined);
 
     const violations = analyze ? await runAxe(page, analyze.language) : null;
+    const seo = analyze ? await extractSeoSnapshot(page) : null;
+    const perf = analyze ? await extractPerfSnapshot(page) : null;
 
     await page.screenshot({
       fullPage: true,
       path: path.join(artifactDirectory, filename),
     });
 
-    return { finalUrl: response?.url() ?? page.url(), violations };
+    return { finalUrl: response?.url() ?? page.url(), violations, seo, perf };
   } finally {
     await context?.close();
   }
@@ -250,7 +322,7 @@ export async function runPlaywrightScan(options: ScanOptions): Promise<AuditReco
   });
 
   try {
-    const { finalUrl, violations } = await captureViewport(
+    const { finalUrl, violations, seo, perf } = await captureViewport(
       browser,
       options.url,
       artifactDirectory,
@@ -279,19 +351,29 @@ export async function runPlaywrightScan(options: ScanOptions): Promise<AuditReco
       dedupedFailedRequests.length,
       durationMs,
     );
+    const s = auditStrings(options.language);
+
     // `violations` is null only if the accessibility scan failed to run; in
     // that case we omit the category rather than report a misleading score.
     const accessibility = violations
       ? accessibilityScore(countAxeImpacts(violations))
       : undefined;
+    const seoResult = seo ? analyzeSeo(seo, s) : null;
+    const perfResult = perf ? analyzePerformance(perf, s) : null;
     const scores = {
-      overall: overallScore({ technical: technical.overall, accessibility }),
+      overall: overallScore({
+        technical: technical.overall,
+        accessibility,
+        seo: seoResult?.score,
+        performance: perfResult?.score,
+      }),
       accessibility,
+      seo: seoResult?.score,
+      performance: perfResult?.score,
       scanner: technical.scanner,
       console: technical.console,
       network: technical.network,
     };
-    const s = auditStrings(options.language);
 
     return {
       id: options.auditId,
@@ -310,6 +392,8 @@ export async function runPlaywrightScan(options: ScanOptions): Promise<AuditReco
       failedRequests: dedupedFailedRequests,
       issues: [
         ...(violations ? buildAccessibilityIssues(violations, s) : []),
+        ...(seoResult?.issues ?? []),
+        ...(perfResult?.issues ?? []),
         ...buildIssues(dedupedConsoleErrors, dedupedFailedRequests, s),
       ],
       metrics: buildMetrics(

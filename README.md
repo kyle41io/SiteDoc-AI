@@ -90,11 +90,10 @@ The full phased roadmap and design (Aurora Glass 3D UI, accessibility/SEO/perfor
 engines, AI remediation, shareable reports, deployment) lives in
 [`docs/superpowers/specs/2026-06-11-sitedoc-ai-roadmap-design.md`](docs/superpowers/specs/2026-06-11-sitedoc-ai-roadmap-design.md).
 
-Shipped: Aurora Glass design system + 3D celestial hero · **axe-core accessibility engine** (categorized, scored, localized) · 5-language i18n.
+Shipped: Aurora Glass design system + 3D celestial hero · **axe-core accessibility engine** · **deterministic SEO + performance checks** (categorized, scored, localized) · 5-language i18n.
 
 Upcoming:
 
-- SEO + performance deterministic checks
 - AI remediation reports from real audit data (with deterministic fallback)
 - Shareable `/report/{id}` pages, persistence, and PDF export
 

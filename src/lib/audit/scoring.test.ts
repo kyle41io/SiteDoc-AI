@@ -74,13 +74,20 @@ describe("accessibilityScore", () => {
 });
 
 describe("overallScore", () => {
-  it("returns the technical score when accessibility is absent", () => {
+  it("returns the technical score when no category engines have run", () => {
     expect(overallScore({ technical: 82 })).toBe(82);
   });
 
-  it("blends technical and accessibility 50/50", () => {
-    expect(overallScore({ technical: 80, accessibility: 90 })).toBe(85);
-    expect(overallScore({ technical: 100, accessibility: 60 })).toBe(80);
+  it("normalizes weights over the present categories (accessibility-heavier)", () => {
+    // accessibility 0.3 + technical 0.2 → normalized 0.6 / 0.4
+    expect(overallScore({ technical: 80, accessibility: 90 })).toBe(86);
+  });
+
+  it("blends accessibility, seo, performance, and technical when all present", () => {
+    // 80*0.3 + 60*0.25 + 40*0.25 + 100*0.2 = 24 + 15 + 10 + 20 = 69
+    expect(
+      overallScore({ technical: 100, accessibility: 80, seo: 60, performance: 40 }),
+    ).toBe(69);
   });
 });
 
