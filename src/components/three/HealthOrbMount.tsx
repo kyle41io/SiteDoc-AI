@@ -1,15 +1,15 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { scoreColor } from "@/components/three/HealthOrb";
+import { celestialColor } from "@/lib/celestial";
 
 /**
- * CSS-only fallback shown while the WebGL orb loads, or when WebGL/3D is
+ * CSS-only fallback shown while the WebGL hero loads, or when WebGL/3D is
  * unavailable or the user prefers reduced motion. It still conveys the score
- * via color, so the hero is meaningful without the 3D scene.
+ * via its tier color, so the hero is meaningful without the 3D scene.
  */
 export function OrbFallback({ score, color: colorOverride }: { score: number; color?: string }) {
-  const color = colorOverride ?? scoreColor(score);
+  const color = colorOverride ?? celestialColor(score);
   return (
     <div
       aria-hidden

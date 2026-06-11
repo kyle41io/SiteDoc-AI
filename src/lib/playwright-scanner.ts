@@ -13,12 +13,15 @@ import {
   getAuditArtifactUrl,
 } from "@/lib/store";
 import { scoreFromCounts, severityFromIndex } from "@/lib/audit/scoring";
+import { auditStrings, type AuditStrings } from "@/lib/audit/audit-i18n";
 import { createRequestSafetyGuard } from "@/lib/url-validation";
 
 type ScanOptions = {
   auditId: string;
   url: string;
   startedAt: string;
+  /** Locale for generated audit content (summary, issues, metrics). */
+  language?: string;
 };
 
 const navigationTimeoutMs = 30_000;
@@ -38,15 +41,19 @@ function uniqueBy<T>(items: T[], getKey: (item: T) => string) {
   });
 }
 
-function buildIssues(consoleErrors: ConsoleError[], failedRequests: FailedRequest[]) {
+function buildIssues(
+  consoleErrors: ConsoleError[],
+  failedRequests: FailedRequest[],
+  s: AuditStrings,
+) {
   const consoleIssues: AuditIssue[] = consoleErrors.slice(0, 5).map((error, index) => ({
     id: `console-${index + 1}`,
     category: "Console",
     severity: severityFromIndex(index),
-    title: "Browser console error detected",
+    title: s.consoleIssueTitle,
     selector: error.url ? `${error.url}:${error.lineNumber ?? 0}` : "console.error",
     detail: error.text,
-    fix: "Inspect the browser console stack trace, fix the failing client-side code, and add regression coverage for the affected UI flow.",
+    fix: s.consoleIssueFix,
   }));
 
   const requestIssues: AuditIssue[] = failedRequests.slice(0, 5).map((request, index) => ({
@@ -54,11 +61,11 @@ function buildIssues(consoleErrors: ConsoleError[], failedRequests: FailedReques
     category: "Network",
     severity: request.status && request.status >= 500 ? "High" : severityFromIndex(index),
     title: request.status
-      ? `Request returned HTTP ${request.status}`
-      : "Network request failed",
+      ? s.networkIssueTitleStatus(request.status)
+      : s.networkIssueTitleFailed,
     selector: `${request.method} ${request.resourceType}`,
     detail: `${request.url} - ${request.failureText}`,
-    fix: "Confirm the resource URL, server status, deployment configuration, CORS policy, and retry/error handling for this request.",
+    fix: s.networkIssueFix,
   }));
 
   return [...consoleIssues, ...requestIssues];
@@ -169,48 +176,50 @@ async function captureViewport(
   }
 }
 
-function buildMetrics(record: {
-  durationMs: number;
-  consoleErrors: ConsoleError[];
-  failedRequests: FailedRequest[];
-  finalUrl: string;
-}): AuditMetric[] {
+function buildMetrics(
+  record: {
+    durationMs: number;
+    consoleErrors: ConsoleError[];
+    failedRequests: FailedRequest[];
+    finalUrl: string;
+  },
+  s: AuditStrings,
+): AuditMetric[] {
   return [
     {
-      label: "Scan duration",
+      label: s.metricScanDurationLabel,
       value: `${(record.durationMs / 1000).toFixed(1)}s`,
-      detail: "Time spent launching Chromium, loading the page, and capturing screenshots.",
+      detail: s.metricScanDurationDetail,
     },
     {
-      label: "Console errors",
+      label: s.metricConsoleErrorsLabel,
       value: String(record.consoleErrors.length),
-      detail: "Browser console messages with error severity from the desktop scan.",
+      detail: s.metricConsoleErrorsDetail,
     },
     {
-      label: "Failed requests",
+      label: s.metricFailedRequestsLabel,
       value: String(record.failedRequests.length),
-      detail: "Network failures and HTTP 4xx/5xx responses observed during page load.",
+      detail: s.metricFailedRequestsDetail,
     },
     {
-      label: "Final URL",
+      label: s.metricFinalUrlLabel,
       value: new URL(record.finalUrl).hostname,
       detail: record.finalUrl,
     },
   ];
 }
 
-function buildSummary(consoleErrors: ConsoleError[], failedRequests: FailedRequest[], durationMs: number) {
+function buildSummary(
+  consoleErrors: ConsoleError[],
+  failedRequests: FailedRequest[],
+  durationMs: number,
+  s: AuditStrings,
+) {
   if (consoleErrors.length === 0 && failedRequests.length === 0) {
-    return `The page loaded successfully in ${(durationMs / 1000).toFixed(
-      1,
-    )}s with no console errors or failed network requests detected during the scan.`;
+    return s.summaryClean((durationMs / 1000).toFixed(1));
   }
 
-  return `The scanner captured ${consoleErrors.length} console error${
-    consoleErrors.length === 1 ? "" : "s"
-  } and ${failedRequests.length} failed network request${
-    failedRequests.length === 1 ? "" : "s"
-  }. Prioritize high-impact client errors and failed critical resources before deeper UX or SEO review.`;
+  return s.summaryIssues(consoleErrors.length, failedRequests.length);
 }
 
 export async function runPlaywrightScan(options: ScanOptions): Promise<AuditRecord> {
@@ -254,12 +263,14 @@ export async function runPlaywrightScan(options: ScanOptions): Promise<AuditReco
       dedupedFailedRequests.length,
       durationMs,
     );
+    const s = auditStrings(options.language);
 
     return {
       id: options.auditId,
       url: options.url,
       finalUrl,
       status: "completed",
+      language: options.language,
       createdAt: options.startedAt,
       completedAt: new Date().toISOString(),
       durationMs,
@@ -269,15 +280,18 @@ export async function runPlaywrightScan(options: ScanOptions): Promise<AuditReco
       },
       consoleErrors: dedupedConsoleErrors,
       failedRequests: dedupedFailedRequests,
-      issues: buildIssues(dedupedConsoleErrors, dedupedFailedRequests),
-      metrics: buildMetrics({
-        durationMs,
-        consoleErrors: dedupedConsoleErrors,
-        failedRequests: dedupedFailedRequests,
-        finalUrl,
-      }),
+      issues: buildIssues(dedupedConsoleErrors, dedupedFailedRequests, s),
+      metrics: buildMetrics(
+        {
+          durationMs,
+          consoleErrors: dedupedConsoleErrors,
+          failedRequests: dedupedFailedRequests,
+          finalUrl,
+        },
+        s,
+      ),
       scores,
-      summary: buildSummary(dedupedConsoleErrors, dedupedFailedRequests, durationMs),
+      summary: buildSummary(dedupedConsoleErrors, dedupedFailedRequests, durationMs, s),
     };
   } finally {
     await browser.close();

@@ -3,54 +3,50 @@
 import { FormEvent, useMemo, useState } from "react";
 import type { AuditCategory, AuditRecord } from "@/lib/audit-types";
 import { CATEGORY_ACCENT } from "@/lib/audit/category-meta";
+import { celestialTier, CELESTIAL_COLOR } from "@/lib/celestial";
 import { cn } from "@/lib/cn";
+import { useI18n } from "@/i18n/provider";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { ScoreCard } from "@/components/ui/ScoreCard";
 import { Tabs, type TabItem } from "@/components/ui/Tabs";
 import { CategoryBadge, SeverityBadge } from "@/components/ui/badges";
+import { LanguageSwitcher } from "@/components/ui/LanguageSwitcher";
 import { HealthOrbMount, OrbFallback } from "@/components/three/HealthOrbMount";
 
 type PageStatus = "idle" | "running" | "completed" | "failed";
 type FilterValue = AuditCategory | "All";
 type DetailTab = "overview" | "issues" | "screenshots" | "metrics";
 
-const auditSteps = [
-  "Validating public URL",
-  "Launching isolated browser",
-  "Capturing desktop screenshot",
-  "Capturing mobile screenshot",
-  "Saving audit artifacts",
-];
-
-const moduleOptions = [
-  "URL safety validation",
-  "Desktop screenshot",
-  "Mobile screenshot",
-  "Console & network capture",
-];
-
 /** Score tiles for every category that has a measured value (overall is the orb). */
 function scoreBand(report: AuditRecord | null) {
   const s = report?.scores;
-  const cards: Array<{ key: string; label: string; value?: number; accent: string }> = [
-    { key: "accessibility", label: "Accessibility", value: s?.accessibility, accent: CATEGORY_ACCENT.Accessibility },
-    { key: "seo", label: "SEO", value: s?.seo, accent: CATEGORY_ACCENT.SEO },
-    { key: "performance", label: "Performance", value: s?.performance, accent: CATEGORY_ACCENT.Performance },
-    { key: "ux", label: "UX", value: s?.ux, accent: CATEGORY_ACCENT.UX },
-    { key: "bestPractices", label: "Best Practices", value: s?.bestPractices, accent: CATEGORY_ACCENT.BestPractices },
-    { key: "scanner", label: "Scanner", value: s?.scanner, accent: CATEGORY_ACCENT.Scanner },
-    { key: "console", label: "Console", value: s?.console, accent: CATEGORY_ACCENT.Console },
-    { key: "network", label: "Network", value: s?.network, accent: CATEGORY_ACCENT.Network },
+  const cards: Array<{ key: string; catKey: AuditCategory; value?: number; accent: string }> = [
+    { key: "accessibility", catKey: "Accessibility", value: s?.accessibility, accent: CATEGORY_ACCENT.Accessibility },
+    { key: "seo", catKey: "SEO", value: s?.seo, accent: CATEGORY_ACCENT.SEO },
+    { key: "performance", catKey: "Performance", value: s?.performance, accent: CATEGORY_ACCENT.Performance },
+    { key: "ux", catKey: "UX", value: s?.ux, accent: CATEGORY_ACCENT.UX },
+    { key: "bestPractices", catKey: "BestPractices", value: s?.bestPractices, accent: CATEGORY_ACCENT.BestPractices },
+    { key: "scanner", catKey: "Scanner", value: s?.scanner, accent: CATEGORY_ACCENT.Scanner },
+    { key: "console", catKey: "Console", value: s?.console, accent: CATEGORY_ACCENT.Console },
+    { key: "network", catKey: "Network", value: s?.network, accent: CATEGORY_ACCENT.Network },
   ];
   return cards.filter((card) => typeof card.value === "number");
 }
 
-function ScreenshotPanel({ label, src }: { label: string; src?: string }) {
+function ScreenshotPanel({
+  label,
+  emptyLabel,
+  src,
+}: {
+  label: string;
+  emptyLabel: string;
+  src?: string;
+}) {
   if (!src) {
     return (
       <div className="flex aspect-[16/10] items-center justify-center rounded-xl border border-dashed border-white/15 bg-white/[0.03]">
         <span className="rounded-md bg-white/10 px-3 py-1 text-sm text-[var(--muted)]">
-          Awaiting scan
+          {emptyLabel}
         </span>
       </div>
     );
@@ -65,7 +61,7 @@ function ScreenshotPanel({ label, src }: { label: string; src?: string }) {
     >
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
-        alt={`${label} screenshot`}
+        alt={label}
         className="aspect-[16/10] w-full object-cover object-top"
         src={src}
       />
@@ -95,6 +91,7 @@ async function readAuditResponse(response: Response) {
 }
 
 export default function Home() {
+  const { t, locale } = useI18n();
   const [url, setUrl] = useState("https://example.com");
   const [status, setStatus] = useState<PageStatus>("idle");
   const [selectedCategory, setSelectedCategory] = useState<FilterValue>("All");
@@ -118,13 +115,14 @@ export default function Home() {
   }, [auditReport, selectedCategory]);
 
   const overall = auditReport?.scores.overall;
+  const tier = typeof overall === "number" ? celestialTier(overall) : null;
   const isRunning = status === "running";
 
   const detailTabs: TabItem[] = [
-    { id: "overview", label: "Overview" },
-    { id: "issues", label: "Issues", count: auditReport?.issues.length },
-    { id: "screenshots", label: "Screenshots" },
-    { id: "metrics", label: "Metrics", count: auditReport?.metrics.length },
+    { id: "overview", label: t.tabs.overview },
+    { id: "issues", label: t.tabs.issues, count: auditReport?.issues.length },
+    { id: "screenshots", label: t.tabs.screenshots },
+    { id: "metrics", label: t.tabs.metrics, count: auditReport?.metrics.length },
   ];
 
   async function runAudit() {
@@ -138,12 +136,12 @@ export default function Home() {
     setActiveStep(0);
 
     const stepTimer = window.setInterval(() => {
-      setActiveStep((step) => Math.min(step + 1, auditSteps.length - 1));
+      setActiveStep((step) => Math.min(step + 1, t.steps.length - 1));
     }, 900);
 
     try {
       const response = await fetch("/api/audits", {
-        body: JSON.stringify({ url }),
+        body: JSON.stringify({ url, language: locale }),
         headers: { "Content-Type": "application/json" },
         method: "POST",
       });
@@ -167,7 +165,7 @@ export default function Home() {
       );
     } finally {
       window.clearInterval(stepTimer);
-      setActiveStep(auditSteps.length - 1);
+      setActiveStep(t.steps.length - 1);
     }
   }
 
@@ -183,20 +181,18 @@ export default function Home() {
   return (
     <main className="mx-auto w-full max-w-7xl px-5 pb-16">
       {/* Header */}
-      <header className="flex flex-col gap-3 py-7 sm:flex-row sm:items-end sm:justify-between">
+      <header className="flex flex-col gap-4 py-7 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <p className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.22em] text-[var(--accent)]">
             <span className="h-1.5 w-1.5 rounded-full bg-[var(--accent)]" aria-hidden />
-            SiteDoc AI
+            {t.brand}
           </p>
           <h1 className="mt-2 text-3xl font-semibold tracking-tight text-white md:text-4xl">
-            Website QA reports your team can act on.
+            {t.title}
           </h1>
-          <p className="mt-2 max-w-xl text-sm text-[var(--muted)]">
-            Scan a public URL for accessibility, SEO, performance, and UX issues —
-            deterministic checks plus AI explanation, in one shareable report.
-          </p>
+          <p className="mt-2 max-w-xl text-sm text-[var(--muted)]">{t.subtitle}</p>
         </div>
+        <LanguageSwitcher />
       </header>
 
       <div className="grid gap-5 lg:grid-cols-[360px_1fr]">
@@ -205,8 +201,8 @@ export default function Home() {
           <GlassCard strong className="p-5">
             <div className="flex items-center justify-between border-b border-white/10 pb-4">
               <div>
-                <h2 className="text-lg font-semibold text-white">New audit</h2>
-                <p className="text-sm text-[var(--muted)]">Scan a public page URL.</p>
+                <h2 className="text-lg font-semibold text-white">{t.newAudit}</h2>
+                <p className="text-sm text-[var(--muted)]">{t.newAuditHint}</p>
               </div>
             </div>
 
@@ -219,12 +215,12 @@ export default function Home() {
             >
               <label className="block">
                 <span className="text-sm font-medium text-[var(--muted-strong)]">
-                  Website URL
+                  {t.urlLabel}
                 </span>
                 <input
                   className="mt-2 h-11 w-full rounded-xl border border-white/15 bg-black/20 px-3 text-sm text-white outline-none transition placeholder:text-white/30 focus:border-[var(--accent)]"
                   onChange={(event) => setUrl(event.target.value)}
-                  placeholder="https://your-site.com"
+                  placeholder={t.urlPlaceholder}
                   type="url"
                   value={url}
                 />
@@ -232,10 +228,10 @@ export default function Home() {
 
               <fieldset className="space-y-2">
                 <legend className="text-sm font-medium text-[var(--muted-strong)]">
-                  Audit modules{" "}
-                  <span className="font-normal text-[var(--muted)]">· all run by default</span>
+                  {t.modulesTitle}{" "}
+                  <span className="font-normal text-[var(--muted)]">· {t.modulesHint}</span>
                 </legend>
-                {moduleOptions.map((label) => (
+                {t.modules.map((label) => (
                   <div
                     className="flex items-center justify-between rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-[var(--muted-strong)]"
                     key={label}
@@ -263,14 +259,14 @@ export default function Home() {
                 disabled={isRunning}
                 type="submit"
               >
-                {isRunning ? "Running audit…" : "Run audit"}
+                {isRunning ? t.running : t.run}
               </button>
             </form>
 
             <div className="mt-5 rounded-xl border border-white/10 bg-white/[0.03] p-3">
-              <p className="text-sm font-semibold text-white">Scanner pipeline</p>
+              <p className="text-sm font-semibold text-white">{t.pipeline}</p>
               <ol className="mt-3 space-y-2">
-                {auditSteps.map((step, index) => {
+                {t.steps.map((step, index) => {
                   const done =
                     status === "completed" ||
                     status === "failed" ||
@@ -299,12 +295,12 @@ export default function Home() {
 
         {/* Report column */}
         <section className="space-y-5">
-          <h2 className="sr-only">Audit results</h2>
+          <h2 className="sr-only">{t.resultsHeading}</h2>
           {/* Command Center hero */}
           <GlassCard strong className="overflow-hidden p-5">
             <div className="flex flex-col gap-5 lg:flex-row lg:items-center">
               <div className="flex items-center gap-5">
-                <div className="relative h-32 w-32 shrink-0 sm:h-36 sm:w-36">
+                <div className="relative h-48 w-48 shrink-0 sm:h-56 sm:w-56">
                   {status === "completed" && typeof overall === "number" ? (
                     <HealthOrbMount score={overall} />
                   ) : (
@@ -313,14 +309,22 @@ export default function Home() {
                 </div>
                 <div>
                   <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--muted)]">
-                    Overall health
+                    {t.overallHealth}
                   </p>
                   <p className="mt-1 text-5xl font-semibold tabular-nums text-white">
                     {typeof overall === "number" ? overall : "--"}
                     <span className="ml-1 text-lg font-normal text-[var(--muted)]">/100</span>
                   </p>
+                  {tier ? (
+                    <p
+                      className="mt-1 text-sm font-semibold"
+                      style={{ color: CELESTIAL_COLOR[tier] }}
+                    >
+                      {t.celestial[tier]}
+                    </p>
+                  ) : null}
                   <p className="mt-1 break-all text-sm text-[var(--muted)]">
-                    {auditReport?.finalUrl ?? (isRunning ? "Scanning…" : url)}
+                    {auditReport?.finalUrl ?? (isRunning ? t.scanning : url)}
                   </p>
                 </div>
               </div>
@@ -331,7 +335,7 @@ export default function Home() {
                     {scoreBand(auditReport).map((card) => (
                       <ScoreCard
                         key={card.key}
-                        label={card.label}
+                        label={t.categories[card.catKey]}
                         value={card.value}
                         accent={card.accent}
                       />
@@ -339,9 +343,7 @@ export default function Home() {
                   </div>
                 ) : (
                   <p className="rounded-xl border border-white/10 bg-white/[0.03] p-4 text-sm text-[var(--muted)]">
-                    {isRunning
-                      ? "Capturing browser signals and scoring the page…"
-                      : "Run an audit to populate health scores. Accessibility, SEO, and performance engines arrive in upcoming updates."}
+                    {isRunning ? t.scoresRunning : t.scoresIdle}
                   </p>
                 )}
               </div>
@@ -352,10 +354,10 @@ export default function Home() {
                 {auditReport ? (
                   <>
                     <span style={{ color: CATEGORY_ACCENT.Accessibility }}>●</span>{" "}
-                    {auditReport.status} · {auditReport.id}
+                    {t.statuses[auditReport.status]} · {auditReport.id}
                   </>
                 ) : (
-                  "No audit run yet"
+                  t.noAudit
                 )}
               </p>
               <div className="flex gap-2">
@@ -365,15 +367,15 @@ export default function Home() {
                   onClick={copyReportLink}
                   type="button"
                 >
-                  {copied ? "Copied!" : "Copy report link"}
+                  {copied ? t.copied : t.copyLink}
                 </button>
                 <button
                   className="rounded-xl border border-white/10 px-3 py-2 text-sm font-medium text-[var(--muted)] disabled:cursor-not-allowed"
                   disabled
-                  title="PDF export arrives with report persistence."
+                  title={t.exportPdfTitle}
                   type="button"
                 >
-                  Export PDF
+                  {t.exportPdf}
                 </button>
               </div>
             </div>
@@ -386,7 +388,7 @@ export default function Home() {
               active={activeTab}
               onChange={(id) => setActiveTab(id as DetailTab)}
               idPrefix="detail"
-              label="Audit report sections"
+              label={t.resultsHeading}
             />
 
             <div className="mt-5">
@@ -400,18 +402,15 @@ export default function Home() {
               >
                 <div className="grid gap-4 md:grid-cols-2">
                   <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
-                    <h3 className="text-sm font-semibold text-white">Summary</h3>
+                    <h3 className="text-sm font-semibold text-white">{t.summary}</h3>
                     <p className="mt-2 text-sm leading-6 text-[var(--muted-strong)]">
-                      {auditReport?.summary ??
-                        "Run an audit to generate a summary from real browser signals."}
+                      {auditReport?.summary ?? t.summaryEmpty}
                     </p>
                   </div>
                   <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
-                    <h3 className="text-sm font-semibold text-white">Next action</h3>
+                    <h3 className="text-sm font-semibold text-white">{t.nextAction}</h3>
                     <p className="mt-2 text-sm leading-6 text-[var(--muted-strong)]">
-                      {auditReport
-                        ? "Review the detected issues and screenshots. Accessibility, SEO, and AI remediation passes build on this scan."
-                        : "Start with a public URL that does not require login or private network access."}
+                      {auditReport ? t.nextActionDone : t.nextActionIdle}
                     </p>
                   </div>
                 </div>
@@ -438,7 +437,7 @@ export default function Home() {
                           : "border border-white/12 text-[var(--muted-strong)] hover:text-white",
                       )}
                     >
-                      {category}
+                      {category === "All" ? t.filterAll : t.categories[category]}
                     </button>
                   ))}
                 </div>
@@ -446,12 +445,11 @@ export default function Home() {
                 <div className="mt-4 space-y-3">
                   {!auditReport ? (
                     <p className="rounded-xl border border-white/10 bg-white/[0.03] p-4 text-sm text-[var(--muted)]">
-                      Run an audit to collect console errors, failed requests, and
-                      screenshot artifacts.
+                      {t.issuesEmpty}
                     </p>
                   ) : filteredIssues.length === 0 ? (
                     <p className="rounded-xl border border-emerald-400/25 bg-emerald-500/10 p-4 text-sm text-emerald-200">
-                      No issues were detected for this filter. 🎉
+                      {t.issuesNone}
                     </p>
                   ) : (
                     filteredIssues.map((issue) => (
@@ -462,8 +460,14 @@ export default function Home() {
                         <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                           <div className="min-w-0">
                             <div className="flex flex-wrap items-center gap-2">
-                              <CategoryBadge category={issue.category} />
-                              <SeverityBadge severity={issue.severity} />
+                              <CategoryBadge
+                                category={issue.category}
+                                label={t.categories[issue.category]}
+                              />
+                              <SeverityBadge
+                                severity={issue.severity}
+                                label={t.severities[issue.severity]}
+                              />
                             </div>
                             <h3 className="mt-3 text-base font-semibold text-white">
                               {issue.title}
@@ -499,8 +503,16 @@ export default function Home() {
                 tabIndex={0}
               >
                 <div className="grid gap-4 sm:grid-cols-2">
-                  <ScreenshotPanel label="Desktop · 1440px" src={auditReport?.screenshots.desktop} />
-                  <ScreenshotPanel label="Mobile · 390px" src={auditReport?.screenshots.mobile} />
+                  <ScreenshotPanel
+                    label={t.shotDesktop}
+                    emptyLabel={t.awaitingScan}
+                    src={auditReport?.screenshots.desktop}
+                  />
+                  <ScreenshotPanel
+                    label={t.shotMobile}
+                    emptyLabel={t.awaitingScan}
+                    src={auditReport?.screenshots.mobile}
+                  />
                 </div>
               </section>
 
@@ -533,8 +545,7 @@ export default function Home() {
                   </div>
                 ) : (
                   <p className="rounded-xl border border-white/10 bg-white/[0.03] p-4 text-sm text-[var(--muted)]">
-                    Run an audit to save scan timing, final URL, and browser signal
-                    metrics.
+                    {t.metricsEmpty}
                   </p>
                 )}
               </section>

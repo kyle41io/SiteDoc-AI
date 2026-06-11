@@ -1,0 +1,90 @@
+import type { Dictionary } from "@/i18n/dictionaries/en";
+
+export const es: Dictionary = {
+  brand: "SiteDoc AI",
+  title: "Informes de QA web sobre los que tu equipo puede actuar.",
+  subtitle:
+    "Analiza una URL pública en busca de problemas de accesibilidad, SEO, rendimiento y UX: comprobaciones deterministas más explicación con IA, en un informe que puedes compartir.",
+  newAudit: "Nuevo análisis",
+  newAuditHint: "Analiza la URL de una página pública.",
+  urlLabel: "URL del sitio web",
+  urlPlaceholder: "https://tu-sitio.com",
+  modulesTitle: "Módulos de análisis",
+  modulesHint: "todos se ejecutan por defecto",
+  modules: [
+    "Validación de seguridad de URL",
+    "Captura de escritorio",
+    "Captura de móvil",
+    "Captura de consola y red",
+  ],
+  run: "Ejecutar análisis",
+  running: "Analizando…",
+  pipeline: "Flujo del escáner",
+  steps: [
+    "Validando URL pública",
+    "Iniciando navegador aislado",
+    "Capturando pantalla de escritorio",
+    "Capturando pantalla de móvil",
+    "Guardando resultados del análisis",
+  ],
+  overallHealth: "Salud general",
+  scanning: "Analizando…",
+  noAudit: "Aún no se ha ejecutado ningún análisis",
+  scoresRunning: "Capturando señales del navegador y puntuando la página…",
+  scoresIdle:
+    "Ejecuta un análisis para mostrar las puntuaciones. Los motores de Accesibilidad, SEO y Rendimiento llegarán en próximas actualizaciones.",
+  copyLink: "Copiar enlace del informe",
+  copied: "¡Copiado!",
+  exportPdf: "Exportar PDF",
+  exportPdfTitle: "La exportación a PDF llegará con el almacenamiento de informes.",
+  resultsHeading: "Resultados del análisis",
+  language: "Idioma",
+  tabs: {
+    overview: "Resumen",
+    issues: "Problemas",
+    screenshots: "Capturas",
+    metrics: "Métricas",
+  },
+  summary: "Resumen",
+  summaryEmpty:
+    "Ejecuta un análisis para generar un resumen a partir de señales reales del navegador.",
+  nextAction: "Próxima acción",
+  nextActionDone:
+    "Revisa los problemas detectados y las capturas. Las fases de Accesibilidad, SEO y remediación con IA se basan en este análisis.",
+  nextActionIdle:
+    "Empieza con una URL pública que no requiera inicio de sesión ni acceso a red privada.",
+  filterAll: "Todos",
+  issuesEmpty:
+    "Ejecuta un análisis para recopilar errores de consola, solicitudes fallidas y capturas.",
+  issuesNone: "No se detectaron problemas para este filtro. 🎉",
+  shotDesktop: "Escritorio · 1440px",
+  shotMobile: "Móvil · 390px",
+  awaitingScan: "Esperando análisis",
+  metricsEmpty:
+    "Ejecuta un análisis para guardar el tiempo de escaneo, la URL final y las métricas de señales del navegador.",
+  categories: {
+    Accessibility: "Accesibilidad",
+    SEO: "SEO",
+    Performance: "Rendimiento",
+    UX: "UX",
+    BestPractices: "Buenas prácticas",
+    Console: "Consola",
+    Network: "Red",
+    Scanner: "Escáner",
+  },
+  severities: { High: "Alta", Medium: "Media", Low: "Baja" },
+  celestial: {
+    moon: "Luna",
+    mars: "Marte",
+    saturn: "Saturno",
+    earth: "Tierra",
+    sun: "Sol",
+    galaxy: "Galaxia",
+  },
+  statuses: {
+    queued: "en cola",
+    running: "en ejecución",
+    completed: "completado",
+    failed: "fallido",
+  },
+};

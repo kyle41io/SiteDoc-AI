@@ -3,6 +3,8 @@ import { NextRequest, NextResponse } from "next/server";
 import type { AuditRecord } from "@/lib/audit-types";
 import { auditStore } from "@/lib/store";
 import { runPlaywrightScan } from "@/lib/playwright-scanner";
+import { auditStrings } from "@/lib/audit/audit-i18n";
+import { isLocale } from "@/i18n/config";
 import { validatePublicHttpUrl } from "@/lib/url-validation";
 
 export const runtime = "nodejs";
@@ -27,9 +29,10 @@ export async function POST(request: NextRequest) {
     return jsonError("Request body must be valid JSON.", 400);
   }
 
-  const url = typeof payload === "object" && payload !== null && "url" in payload
-    ? String(payload.url)
-    : "";
+  const record = (payload ?? {}) as { url?: unknown; language?: unknown };
+  const url = typeof record.url === "string" ? record.url : "";
+  const language = isLocale(record.language) ? record.language : "en";
+  const strings = auditStrings(language);
 
   let normalizedUrl: string;
 
@@ -45,6 +48,7 @@ export async function POST(request: NextRequest) {
     id: auditId,
     url: normalizedUrl,
     status: "running",
+    language,
     createdAt,
     screenshots: {},
     consoleErrors: [],
@@ -57,7 +61,7 @@ export async function POST(request: NextRequest) {
       console: 0,
       network: 0,
     },
-    summary: "Scanner is running.",
+    summary: strings.runningSummary,
   };
 
   await auditStore.save(runningRecord);
@@ -67,6 +71,7 @@ export async function POST(request: NextRequest) {
       auditId,
       url: normalizedUrl,
       startedAt: createdAt,
+      language,
     });
 
     await auditStore.save(completedRecord);
@@ -78,8 +83,7 @@ export async function POST(request: NextRequest) {
       status: "failed",
       completedAt: new Date().toISOString(),
       error: error instanceof Error ? error.message : "The scan failed.",
-      summary:
-        "The scanner could not complete this audit. Check the URL, site availability, TLS configuration, and browser runtime logs.",
+      summary: strings.failedSummary,
     };
 
     await auditStore.save(failedRecord);

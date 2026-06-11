@@ -59,6 +59,7 @@ The product should combine deterministic engineering checks with AI explanation.
 - Update `AGENTS.md`, `CLAUDE.md`, relevant skills, or subagent descriptions when major project information changes or new project operating rules are introduced.
 - Prefer project skills over MCP when a task can be solved with skills alone. Use MCP for external state, repository/connector data, live services, or actions that skills cannot perform.
 - Access storage only through the `AuditStore` abstraction (`@/lib/store`). When the AI phase lands, access AI only through the provider abstraction (`@/lib/ai`, introduced then) with a deterministic fallback. Do not weaken the SSRF guard in `@/lib/url-validation`.
+- The app is localized in 5 languages (en/vi/es/zh/ja). UI strings live in `src/i18n/dictionaries/` (typed against the `en` shape — keep all locales in sync); deterministic audit content lives in `src/lib/audit/audit-i18n.ts`. The audit `language` is threaded through the API and stored on the record; any user-facing content (including future AI feedback) must be produced in the page's current language.
 - After meaningful code changes, invoke the `code-reviewer` subagent or run an equivalent code-review pass before considering the task complete.
 - Verification gate before finishing a substantial change: `npm run lint`, `npm run typecheck`, `npm test`, `npm run build`.
 - **Do not commit.** When a major feature is complete and verified, announce it and let the maintainer review and commit. The dev environment requires Node 20+.

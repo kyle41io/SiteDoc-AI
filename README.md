@@ -1,6 +1,6 @@
 # SiteDoc AI
 
-SiteDoc AI is an AI-assisted website QA dashboard for generating developer-ready audit reports across accessibility, performance, SEO, and UX quality.
+SiteDoc AI is an AI-assisted website QA dashboard for generating developer-ready audit reports across accessibility, performance, SEO, and UX quality. It features an "Aurora Glass" UI with a score-driven 3D celestial hero (the better the score, the grander the body — Moon → … → Galaxy) and is available in 5 languages.
 
 The current version includes a real Playwright scanner: submit a public URL, launch Chromium, capture desktop and mobile screenshots, collect console errors and failed network requests, save local audit artifacts, and review the generated report in the dashboard.
 
@@ -10,9 +10,14 @@ The current version includes a real Playwright scanner: submit a public URL, lau
 - React 19
 - TypeScript
 - Tailwind CSS v4
+- three.js / react-three-fiber (3D hero)
 - ESLint
 - Playwright
 - Vitest + Testing Library
+
+## Internationalization
+
+The UI **and** the deterministic audit content (summaries, issue titles/fixes, metrics) are localized in **English, Vietnamese, Spanish, Chinese, and Japanese** via a header language switcher. The chosen language is sent with each audit and stored on the report, so AI-generated feedback (a later phase) is produced in the page's language. See `src/i18n/`.
 
 ## Getting Started
 
@@ -72,6 +77,12 @@ src/lib/store/           AuditStore interface + local FS implementation
 
 Storage is accessed only through the `AuditStore` abstraction (`@/lib/store`), so a
 database-backed implementation can be swapped in later without touching callers.
+
+## Credits
+
+Planet/Sun surface textures (`public/textures/planets/`) are by James Hastings-Trew
+(Planet Pixel Emporium, free for any use), obtained via the MIT-licensed
+`threex.planets` project. See `public/textures/planets/CREDITS.md`.
 
 ## Roadmap
 

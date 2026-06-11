@@ -118,6 +118,8 @@ export type AuditRecord = {
   url: string;
   finalUrl?: string;
   status: AuditStatus;
+  /** Locale the audit content was generated in (BCP-47 short code). */
+  language?: string;
   createdAt: string;
   completedAt?: string;
   error?: string;
