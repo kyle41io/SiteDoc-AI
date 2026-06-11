@@ -10,6 +10,8 @@ Treat this as one continuous project goal, not a day-by-day task list. Keep prog
 
 The full original project brief is stored in `docs/PROJECT_BRIEF.md`. Read it when planning product scope, CV positioning, implementation priorities, or demo expectations.
 
+The current phased roadmap and approved design (Aurora Glass 3D UI direction, build sequencing, technical decisions) is in `docs/superpowers/specs/2026-06-11-sitedoc-ai-roadmap-design.md`. Read it before starting a new phase.
+
 ## Product Direction
 
 SiteDoc AI should be easy for an employer or reviewer to judge quickly:
@@ -56,8 +58,10 @@ The product should combine deterministic engineering checks with AI explanation.
 - Update README when setup, architecture, deployment, or major capabilities change.
 - Update `AGENTS.md`, `CLAUDE.md`, relevant skills, or subagent descriptions when major project information changes or new project operating rules are introduced.
 - Prefer project skills over MCP when a task can be solved with skills alone. Use MCP for external state, repository/connector data, live services, or actions that skills cannot perform.
+- Access storage only through the `AuditStore` abstraction (`@/lib/store`). When the AI phase lands, access AI only through the provider abstraction (`@/lib/ai`, introduced then) with a deterministic fallback. Do not weaken the SSRF guard in `@/lib/url-validation`.
 - After meaningful code changes, invoke the `code-reviewer` subagent or run an equivalent code-review pass before considering the task complete.
-- Before finishing a substantial change, run `npm run lint` and `npm run build`.
+- Verification gate before finishing a substantial change: `npm run lint`, `npm run typecheck`, `npm test`, `npm run build`.
+- **Do not commit.** When a major feature is complete and verified, announce it and let the maintainer review and commit. The dev environment requires Node 20+.
 
 ## Installed Project Skill
 

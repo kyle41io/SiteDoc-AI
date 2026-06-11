@@ -18,6 +18,12 @@ The full original project brief is stored in:
 docs/PROJECT_BRIEF.md
 ```
 
+The current phased roadmap and approved design is in:
+
+```text
+docs/superpowers/specs/2026-06-11-sitedoc-ai-roadmap-design.md
+```
+
 ## Use The Installed Skill
 
 When working on React, Next.js, TypeScript, Tailwind CSS, testing, or deployment tasks, read and follow:
@@ -42,8 +48,10 @@ The skill source and license are documented in:
 - Update `README.md` when setup, architecture, deployment, or major capabilities change.
 - Update `AGENTS.md`, `CLAUDE.md`, relevant skills, or subagent descriptions when major project information changes or new project operating rules are introduced.
 - Prefer project skills over MCP when a task can be solved with skills alone. Use MCP for external state, repository/connector data, live services, or actions that skills cannot perform.
+- Access storage only through the `AuditStore` abstraction (`@/lib/store`). When the AI phase lands, access AI only through the provider abstraction (`@/lib/ai`, introduced then) with a deterministic fallback. Do not weaken the SSRF guard in `@/lib/url-validation`.
 - After meaningful code changes, invoke the `code-reviewer` subagent or run an equivalent code-review pass before considering the task complete.
-- Before finishing a substantial code change, run `npm run lint` and `npm run build`.
+- Verification gate before finishing a substantial code change: `npm run lint`, `npm run typecheck`, `npm test`, `npm run build`. The dev environment requires Node 20+.
+- **Do not commit.** When a major feature is complete and verified, announce it and let the maintainer review and commit.
 
 ## Code Review Agent And Hook
 

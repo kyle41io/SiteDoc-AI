@@ -13,8 +13,13 @@ Review the current diff with a bug-first mindset before the task is considered f
 - Accessibility, responsive behavior, and UX clarity.
 - Security risks, especially unsafe URL handling, SSRF, secret exposure, shell injection, and untrusted browser automation inputs.
 - Scanner architecture risks involving Playwright, axe-core, network capture, screenshot storage, and worker/server runtime boundaries.
-- Missing or weak tests for changed behavior.
-- Documentation drift in `README.md`, `AGENTS.md`, `CLAUDE.md`, skills, or subagent descriptions.
+- Missing or weak tests for changed behavior. The repo uses **Vitest** (`npm test`); flag pure logic (scoring, validation, checks, AI fallback, store) that ships without a co-located `*.test.ts`.
+- Adherence to project abstractions: storage via `@/lib/store` (`AuditStore`), AI via `@/lib/ai` with a deterministic fallback, and the unweakened SSRF guard in `@/lib/url-validation`.
+- Documentation drift in `README.md`, `AGENTS.md`, `CLAUDE.md`, the project skill, or subagent descriptions.
+
+Verification gate: `npm run lint`, `npm run typecheck`, `npm test`, `npm run build`. The maintainer commits — never assume changes are committed.
+
+> Sync: `.claude/agents/code-reviewer.md` mirrors this file for Claude. Keep the two aligned when either changes.
 
 ## Review Process
 

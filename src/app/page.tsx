@@ -7,6 +7,11 @@ type PageStatus = "idle" | "running" | "completed" | "failed";
 type Category = AuditIssue["category"];
 
 const categoryStyles: Record<Category, string> = {
+  Accessibility: "border-emerald-200 bg-emerald-50 text-emerald-800",
+  SEO: "border-violet-200 bg-violet-50 text-violet-800",
+  Performance: "border-amber-200 bg-amber-50 text-amber-800",
+  UX: "border-indigo-200 bg-indigo-50 text-indigo-800",
+  BestPractices: "border-teal-200 bg-teal-50 text-teal-800",
   Scanner: "border-zinc-200 bg-zinc-100 text-zinc-800",
   Console: "border-rose-200 bg-rose-50 text-rose-800",
   Network: "border-sky-200 bg-sky-50 text-sky-800",

@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import type { AuditRecord } from "@/lib/audit-types";
-import { readAuditRecord, saveAuditRecord } from "@/lib/audit-store";
+import { auditStore } from "@/lib/store";
 import { runPlaywrightScan } from "@/lib/playwright-scanner";
 import { validatePublicHttpUrl } from "@/lib/url-validation";
 
@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
     summary: "Scanner is running.",
   };
 
-  await saveAuditRecord(runningRecord);
+  await auditStore.save(runningRecord);
 
   try {
     const completedRecord = await runPlaywrightScan({
@@ -69,7 +69,7 @@ export async function POST(request: NextRequest) {
       startedAt: createdAt,
     });
 
-    await saveAuditRecord(completedRecord);
+    await auditStore.save(completedRecord);
 
     return NextResponse.json(completedRecord);
   } catch (error) {
@@ -82,7 +82,7 @@ export async function POST(request: NextRequest) {
         "The scanner could not complete this audit. Check the URL, site availability, TLS configuration, and browser runtime logs.",
     };
 
-    await saveAuditRecord(failedRecord);
+    await auditStore.save(failedRecord);
 
     return NextResponse.json(failedRecord, { status: 500 });
   }
@@ -99,9 +99,17 @@ export async function GET(request: NextRequest) {
     return jsonError("Audit id is invalid.", 400);
   }
 
+  let record: AuditRecord | null;
+
   try {
-    return NextResponse.json(await readAuditRecord(id));
+    record = await auditStore.get(id);
   } catch {
+    return jsonError("The audit record could not be read.", 500);
+  }
+
+  if (!record) {
     return jsonError("Audit not found.", 404);
   }
+
+  return NextResponse.json(record);
 }

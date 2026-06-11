@@ -11,7 +11,8 @@ import type {
 import {
   getAuditArtifactDirectory,
   getAuditArtifactUrl,
-} from "@/lib/audit-store";
+} from "@/lib/store";
+import { scoreFromCounts, severityFromIndex } from "@/lib/audit/scoring";
 import { createRequestSafetyGuard } from "@/lib/url-validation";
 
 type ScanOptions = {
@@ -35,35 +36,6 @@ function uniqueBy<T>(items: T[], getKey: (item: T) => string) {
     seen.add(key);
     return true;
   });
-}
-
-function scoreFromCounts(consoleErrors: number, failedRequests: number, durationMs: number) {
-  const durationPenalty = Math.min(30, Math.max(0, Math.round((durationMs - 2500) / 250)));
-  const consolePenalty = Math.min(30, consoleErrors * 8);
-  const networkPenalty = Math.min(35, failedRequests * 10);
-  const scanner = Math.max(40, 100 - durationPenalty);
-  const consoleScore = Math.max(30, 100 - consolePenalty);
-  const network = Math.max(30, 100 - networkPenalty);
-  const overall = Math.round(scanner * 0.4 + consoleScore * 0.25 + network * 0.35);
-
-  return {
-    overall,
-    scanner,
-    console: consoleScore,
-    network,
-  };
-}
-
-function severityFromIndex(index: number): "High" | "Medium" | "Low" {
-  if (index === 0) {
-    return "High";
-  }
-
-  if (index < 3) {
-    return "Medium";
-  }
-
-  return "Low";
 }
 
 function buildIssues(consoleErrors: ConsoleError[], failedRequests: FailedRequest[]) {

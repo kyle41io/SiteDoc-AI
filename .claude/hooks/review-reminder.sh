@@ -15,5 +15,6 @@ Code changes are present. Before finishing the task:
 - Run or invoke the `code-reviewer` agent on the current diff.
 - Prefer project skills before MCP when a skill can solve the task.
 - Update AGENTS.md, CLAUDE.md, skills, or subagent descriptions if major project information changed.
-- Run `npm run lint` and `npm run build` for substantial code changes.
+- Verification gate for substantial changes: `npm run lint`, `npm run typecheck`, `npm test`, `npm run build`.
+- Do not commit. Announce completed features for the maintainer to review and commit.
 MESSAGE
