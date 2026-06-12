@@ -4,6 +4,7 @@ import type { AuditRecord } from "@/lib/audit-types";
 import { auditStore } from "@/lib/store";
 import { runPlaywrightScan } from "@/lib/playwright-scanner";
 import { generateAiReport } from "@/lib/ai";
+import { isAuditId } from "@/lib/audit/id";
 import { auditStrings } from "@/lib/audit/audit-i18n";
 import { isLocale } from "@/i18n/config";
 import { validatePublicHttpUrl } from "@/lib/url-validation";
@@ -13,12 +14,6 @@ export const maxDuration = 60;
 
 function jsonError(message: string, status: number) {
   return NextResponse.json({ error: message }, { status });
-}
-
-function isAuditId(value: string) {
-  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
-    value,
-  );
 }
 
 export async function POST(request: NextRequest) {

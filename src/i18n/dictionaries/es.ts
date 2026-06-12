@@ -89,10 +89,20 @@ export const es: Dictionary = {
   },
   ai: {
     heading: "Remediación con IA",
-    byClaude: "Generado por Claude",
+    byAi: "Generado por IA",
     heuristic: "Resumen heurístico",
     recommendations: "Acciones recomendadas",
     topIssues: "Problemas prioritarios",
     uxSuggestions: "Sugerencias de UX",
+  },
+  report: {
+    sharedNote: "Informe de auditoría compartido",
+    auditedUrl: "URL auditada",
+    generatedOn: "Generado el",
+    backToApp: "Volver a SiteDoc AI",
+    downloadPdf: "Descargar PDF",
+    openReport: "Abrir informe",
+    notFoundTitle: "Informe no encontrado",
+    notFoundBody: "Este informe de auditoría no existe o ya no está disponible.",
   },
 };

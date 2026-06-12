@@ -80,10 +80,20 @@ export const zh: Dictionary = {
   },
   ai: {
     heading: "AI 修复建议",
-    byClaude: "由 Claude 生成",
+    byAi: "由 AI 生成",
     heuristic: "启发式摘要",
     recommendations: "建议操作",
     topIssues: "优先问题",
     uxSuggestions: "用户体验建议",
+  },
+  report: {
+    sharedNote: "共享审计报告",
+    auditedUrl: "受审 URL",
+    generatedOn: "生成于",
+    backToApp: "返回 SiteDoc AI",
+    downloadPdf: "下载 PDF",
+    openReport: "打开报告",
+    notFoundTitle: "未找到报告",
+    notFoundBody: "该审计报告不存在或已不可用。",
   },
 };

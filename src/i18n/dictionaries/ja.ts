@@ -88,10 +88,20 @@ export const ja: Dictionary = {
   },
   ai: {
     heading: "AI による改善提案",
-    byClaude: "Claude が生成",
+    byAi: "AI が生成",
     heuristic: "ヒューリスティック要約",
     recommendations: "推奨アクション",
     topIssues: "優先課題",
     uxSuggestions: "UX の提案",
+  },
+  report: {
+    sharedNote: "共有監査レポート",
+    auditedUrl: "監査対象 URL",
+    generatedOn: "生成日",
+    backToApp: "SiteDoc AI に戻る",
+    downloadPdf: "PDF をダウンロード",
+    openReport: "レポートを開く",
+    notFoundTitle: "レポートが見つかりません",
+    notFoundBody: "この監査レポートは存在しないか、利用できなくなりました。",
   },
 };

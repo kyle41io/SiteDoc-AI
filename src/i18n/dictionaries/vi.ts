@@ -88,10 +88,20 @@ export const vi: Dictionary = {
   },
   ai: {
     heading: "Khắc phục bằng AI",
-    byClaude: "Được tạo bởi Claude",
+    byAi: "Được tạo bởi AI",
     heuristic: "Tóm tắt theo quy tắc",
     recommendations: "Hành động đề xuất",
     topIssues: "Vấn đề ưu tiên",
     uxSuggestions: "Gợi ý UX",
+  },
+  report: {
+    sharedNote: "Báo cáo kiểm tra được chia sẻ",
+    auditedUrl: "URL đã kiểm tra",
+    generatedOn: "Tạo ngày",
+    backToApp: "Quay lại SiteDoc AI",
+    downloadPdf: "Tải PDF",
+    openReport: "Mở báo cáo",
+    notFoundTitle: "Không tìm thấy báo cáo",
+    notFoundBody: "Báo cáo kiểm tra này không tồn tại hoặc không còn khả dụng.",
   },
 };

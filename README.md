@@ -29,6 +29,16 @@ Completed audits are enriched with an AI-generated remediation report — an exe
 
 Copy `.env.example` to `.env.local` to configure. All variables are optional.
 
+## Shareable Reports & PDF Export
+
+Every completed audit gets a server-rendered, read-only page at **`/report/{id}`** that
+renders in the language the audit was created in (independent of the viewer's language
+switcher). From the dashboard, **Copy link** / **Open report** share it; from the report
+page, **Download PDF** generates a one-click PDF by rendering the report in print mode
+through the same Playwright/Chromium dependency the scanner uses. Reports are read from
+the `AuditStore`, so a database-backed store will make them durable across deploys without
+any change to these pages.
+
 ## Getting Started
 
 > **Requires Node 20+** (Next.js 16). If your shell defaults to an older Node, run `nvm use 20`.
@@ -100,11 +110,11 @@ The full phased roadmap and design (Aurora Glass 3D UI, accessibility/SEO/perfor
 engines, AI remediation, shareable reports, deployment) lives in
 [`docs/superpowers/specs/2026-06-11-sitedoc-ai-roadmap-design.md`](docs/superpowers/specs/2026-06-11-sitedoc-ai-roadmap-design.md).
 
-Shipped: Aurora Glass design system + 3D celestial hero · **axe-core accessibility engine** · **deterministic SEO + performance checks** (categorized, scored, localized) · **AI remediation layer** (Claude + deterministic fallback, localized) · 5-language i18n.
+Shipped: Aurora Glass design system + 3D celestial hero · **axe-core accessibility engine** · **deterministic SEO + performance checks** (categorized, scored, localized) · **AI remediation layer** (Claude or OpenAI + deterministic fallback, localized) · **shareable `/report/{id}` pages + one-click PDF export** · 5-language i18n.
 
 Upcoming:
 
-- Shareable `/report/{id}` pages, persistence, and PDF export
+- Durable persistence (DB) + async job model and deployment (serverless-ready Playwright, CI)
 
 ## Local Artifact Storage
 
