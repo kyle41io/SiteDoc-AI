@@ -87,4 +87,12 @@ export const es: Dictionary = {
     completed: "completado",
     failed: "fallido",
   },
+  ai: {
+    heading: "Remediación con IA",
+    byClaude: "Generado por Claude",
+    heuristic: "Resumen heurístico",
+    recommendations: "Acciones recomendadas",
+    topIssues: "Problemas prioritarios",
+    uxSuggestions: "Sugerencias de UX",
+  },
 };

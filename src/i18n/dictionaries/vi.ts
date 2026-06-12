@@ -86,4 +86,12 @@ export const vi: Dictionary = {
     completed: "hoàn thành",
     failed: "thất bại",
   },
+  ai: {
+    heading: "Khắc phục bằng AI",
+    byClaude: "Được tạo bởi Claude",
+    heuristic: "Tóm tắt theo quy tắc",
+    recommendations: "Hành động đề xuất",
+    topIssues: "Vấn đề ưu tiên",
+    uxSuggestions: "Gợi ý UX",
+  },
 };

@@ -78,4 +78,12 @@ export const zh: Dictionary = {
     completed: "已完成",
     failed: "失败",
   },
+  ai: {
+    heading: "AI 修复建议",
+    byClaude: "由 Claude 生成",
+    heuristic: "启发式摘要",
+    recommendations: "建议操作",
+    topIssues: "优先问题",
+    uxSuggestions: "用户体验建议",
+  },
 };

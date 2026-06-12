@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import type { AuditRecord } from "@/lib/audit-types";
 import { auditStore } from "@/lib/store";
 import { runPlaywrightScan } from "@/lib/playwright-scanner";
+import { generateAiReport } from "@/lib/ai";
 import { auditStrings } from "@/lib/audit/audit-i18n";
 import { isLocale } from "@/i18n/config";
 import { validatePublicHttpUrl } from "@/lib/url-validation";
@@ -74,9 +75,17 @@ export async function POST(request: NextRequest) {
       language,
     });
 
-    await auditStore.save(completedRecord);
+    // Enrich with the AI remediation layer. `generateAiReport` is non-blocking
+    // and never throws — it falls back to a deterministic report when AI is
+    // unconfigured or fails — so the audit always completes.
+    const enrichedRecord: AuditRecord = {
+      ...completedRecord,
+      ai: await generateAiReport(completedRecord),
+    };
 
-    return NextResponse.json(completedRecord);
+    await auditStore.save(enrichedRecord);
+
+    return NextResponse.json(enrichedRecord);
   } catch (error) {
     const failedRecord: AuditRecord = {
       ...runningRecord,

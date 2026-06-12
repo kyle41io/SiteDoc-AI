@@ -86,4 +86,12 @@ export const ja: Dictionary = {
     completed: "完了",
     failed: "失敗",
   },
+  ai: {
+    heading: "AI による改善提案",
+    byClaude: "Claude が生成",
+    heuristic: "ヒューリスティック要約",
+    recommendations: "推奨アクション",
+    topIssues: "優先課題",
+    uxSuggestions: "UX の提案",
+  },
 };

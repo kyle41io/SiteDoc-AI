@@ -17,7 +17,17 @@ The current version includes a real Playwright scanner: submit a public URL, lau
 
 ## Internationalization
 
-The UI **and** the deterministic audit content (summaries, issue titles/fixes, metrics) are localized in **English, Vietnamese, Spanish, Chinese, and Japanese** via a header language switcher. The chosen language is sent with each audit and stored on the report, so AI-generated feedback (a later phase) is produced in the page's language. See `src/i18n/`.
+The UI, the deterministic audit content (summaries, issue titles/fixes, metrics), **and the AI remediation report** are localized in **English, Vietnamese, Spanish, Chinese, and Japanese** via a header language switcher. The chosen language is sent with each audit and stored on the report, so AI-generated feedback is produced in the page's language. See `src/i18n/`.
+
+## AI Remediation Layer
+
+Completed audits are enriched with an AI-generated remediation report — an executive summary, prioritized issues, recommended actions, and UX suggestions — produced in the page's language. AI is accessed only through the `@/lib/ai` provider abstraction, which selects a provider by whichever API key is present:
+
+- **Claude** (`ANTHROPIC_API_KEY`, preferred): default model `claude-opus-4-8` (override `SITEDOC_AI_MODEL`), via a forced structured-output tool call.
+- **OpenAI** (`OPENAI_API_KEY`, used when no Anthropic key is set): default model `gpt-4o-mini` (override `SITEDOC_OPENAI_MODEL`), via Structured Outputs.
+- **Deterministic fallback** (no key, or any error/timeout): a report built from the audit data and localized templates, so a report is always returned and the audit never blocks.
+
+Copy `.env.example` to `.env.local` to configure. All variables are optional.
 
 ## Getting Started
 
@@ -90,11 +100,10 @@ The full phased roadmap and design (Aurora Glass 3D UI, accessibility/SEO/perfor
 engines, AI remediation, shareable reports, deployment) lives in
 [`docs/superpowers/specs/2026-06-11-sitedoc-ai-roadmap-design.md`](docs/superpowers/specs/2026-06-11-sitedoc-ai-roadmap-design.md).
 
-Shipped: Aurora Glass design system + 3D celestial hero · **axe-core accessibility engine** · **deterministic SEO + performance checks** (categorized, scored, localized) · 5-language i18n.
+Shipped: Aurora Glass design system + 3D celestial hero · **axe-core accessibility engine** · **deterministic SEO + performance checks** (categorized, scored, localized) · **AI remediation layer** (Claude + deterministic fallback, localized) · 5-language i18n.
 
 Upcoming:
 
-- AI remediation reports from real audit data (with deterministic fallback)
 - Shareable `/report/{id}` pages, persistence, and PDF export
 
 ## Local Artifact Storage

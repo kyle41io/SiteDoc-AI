@@ -26,6 +26,19 @@ export type AuditStrings = {
   failedSummary: string;
   seo: SeoStrings;
   performance: PerformanceStrings;
+  ai: AiStrings;
+};
+
+/**
+ * Strings for the AI remediation layer. `languageName` tells the AI provider
+ * which language to write in; the `fallback*` templates produce a deterministic
+ * report when the AI provider is unavailable (no key, error, or timeout).
+ */
+export type AiStrings = {
+  languageName: string;
+  fallbackSummaryClean: (url: string, overall: number) => string;
+  fallbackSummaryIssues: (url: string, overall: number, issues: number) => string;
+  fallbackNoIssues: string;
 };
 
 export type PerformanceStrings = {
@@ -67,6 +80,15 @@ export type SeoStrings = {
 };
 
 const en: AuditStrings = {
+  ai: {
+    languageName: "English",
+    fallbackSummaryClean: (url, overall) =>
+      `${url} scored ${overall}/100 in this automated audit. No blocking accessibility, SEO, performance, or runtime issues were detected.`,
+    fallbackSummaryIssues: (url, overall, n) =>
+      `${url} scored ${overall}/100 in this automated audit. ${n} issue${n === 1 ? "" : "s"} were found across accessibility, SEO, performance, and runtime checks — the highest-impact ones are listed below.`,
+    fallbackNoIssues:
+      "No blocking issues were found. Keep monitoring with periodic audits as the site changes.",
+  },
   summaryClean: (s) =>
     `The page loaded successfully in ${s}s with no console errors or failed network requests detected during the scan.`,
   summaryIssues: (c, n) =>
@@ -145,6 +167,15 @@ const en: AuditStrings = {
 };
 
 const vi: AuditStrings = {
+  ai: {
+    languageName: "Vietnamese",
+    fallbackSummaryClean: (url, overall) =>
+      `${url} đạt ${overall}/100 trong lần kiểm tra tự động này. Không phát hiện vấn đề nghiêm trọng nào về khả năng truy cập, SEO, hiệu năng hay lỗi runtime.`,
+    fallbackSummaryIssues: (url, overall, n) =>
+      `${url} đạt ${overall}/100 trong lần kiểm tra tự động này. Đã phát hiện ${n} vấn đề về khả năng truy cập, SEO, hiệu năng và runtime — những vấn đề tác động lớn nhất được liệt kê bên dưới.`,
+    fallbackNoIssues:
+      "Không phát hiện vấn đề nghiêm trọng nào. Hãy tiếp tục kiểm tra định kỳ khi trang web thay đổi.",
+  },
   summaryClean: (s) =>
     `Trang đã tải thành công trong ${s}s, không phát hiện lỗi console hay yêu cầu mạng thất bại nào trong quá trình quét.`,
   summaryIssues: (c, n) =>
@@ -223,6 +254,15 @@ const vi: AuditStrings = {
 };
 
 const es: AuditStrings = {
+  ai: {
+    languageName: "Spanish",
+    fallbackSummaryClean: (url, overall) =>
+      `${url} obtuvo ${overall}/100 en esta auditoría automática. No se detectaron problemas críticos de accesibilidad, SEO, rendimiento ni de ejecución.`,
+    fallbackSummaryIssues: (url, overall, n) =>
+      `${url} obtuvo ${overall}/100 en esta auditoría automática. Se detectaron ${n} problema${n === 1 ? "" : "s"} de accesibilidad, SEO, rendimiento y ejecución; los de mayor impacto se enumeran a continuación.`,
+    fallbackNoIssues:
+      "No se encontraron problemas críticos. Continúa con auditorías periódicas a medida que el sitio cambie.",
+  },
   summaryClean: (s) =>
     `La página se cargó correctamente en ${s}s sin errores de consola ni solicitudes de red fallidas durante el análisis.`,
   summaryIssues: (c, n) =>
@@ -301,6 +341,14 @@ const es: AuditStrings = {
 };
 
 const zh: AuditStrings = {
+  ai: {
+    languageName: "Chinese (Simplified)",
+    fallbackSummaryClean: (url, overall) =>
+      `${url} 在本次自动审计中得分 ${overall}/100。未检测到严重的无障碍、SEO、性能或运行时问题。`,
+    fallbackSummaryIssues: (url, overall, n) =>
+      `${url} 在本次自动审计中得分 ${overall}/100。在无障碍、SEO、性能和运行时检查中共发现 ${n} 个问题，影响最大的列在下方。`,
+    fallbackNoIssues: "未发现严重问题。请随着网站更新定期进行审计。",
+  },
   summaryClean: (s) =>
     `页面在 ${s}s 内成功加载，扫描期间未检测到控制台错误或失败的网络请求。`,
   summaryIssues: (c, n) =>
@@ -367,6 +415,15 @@ const zh: AuditStrings = {
 };
 
 const ja: AuditStrings = {
+  ai: {
+    languageName: "Japanese",
+    fallbackSummaryClean: (url, overall) =>
+      `${url} は今回の自動監査で ${overall}/100 でした。アクセシビリティ、SEO、パフォーマンス、実行時の重大な問題は検出されませんでした。`,
+    fallbackSummaryIssues: (url, overall, n) =>
+      `${url} は今回の自動監査で ${overall}/100 でした。アクセシビリティ、SEO、パフォーマンス、実行時のチェックで ${n} 件の問題が見つかりました。影響の大きいものを以下に示します。`,
+    fallbackNoIssues:
+      "重大な問題は見つかりませんでした。サイトの更新に合わせて定期的に監査を続けてください。",
+  },
   summaryClean: (s) =>
     `ページは ${s}s で正常に読み込まれ、スキャン中にコンソールエラーや失敗したネットワークリクエストは検出されませんでした。`,
   summaryIssues: (c, n) =>

@@ -72,6 +72,13 @@ function ScreenshotPanel({
   );
 }
 
+/**
+ * Raised when the scanner endpoint is briefly unreachable — e.g. the dev server
+ * is recompiling or a devcontainer port-forwarder serves its own HTML/5xx page
+ * in the gap. These are retryable; the route handler itself always returns JSON.
+ */
+class TransientScannerError extends Error {}
+
 async function readAuditResponse(response: Response) {
   const contentType = response.headers.get("content-type") ?? "";
 
@@ -79,14 +86,81 @@ async function readAuditResponse(response: Response) {
     return (await response.json()) as Partial<AuditRecord> & { error?: string };
   }
 
+  // 502/503/504 from a proxy mean "not ready yet", regardless of body shape.
+  if (response.status === 502 || response.status === 503 || response.status === 504) {
+    throw new TransientScannerError("The scanner is starting up — retrying.");
+  }
+
   const text = await response.text();
   const compactText = text.replace(/\s+/g, " ").trim();
   const isHtml = compactText.startsWith("<!DOCTYPE") || compactText.startsWith("<html");
 
+  if (isHtml) {
+    // An HTML body on an API route means the request never reached our handler
+    // (server down/restarting). Treat as transient so callers can retry.
+    throw new TransientScannerError("The scanner is restarting — retrying.");
+  }
+
   throw new Error(
-    isHtml
-      ? "The scanner API returned an HTML error page. Check the dev server console and restart the app if needed."
-      : compactText.slice(0, 240) || "The scanner API returned an unexpected response.",
+    compactText.slice(0, 240) || "The scanner API returned an unexpected response.",
+  );
+}
+
+const wait = (ms: number) => new Promise((resolve) => window.setTimeout(resolve, ms));
+
+/**
+ * POST an audit, retrying transient unavailability (server restart / network
+ * blip) a few times with backoff before surfacing a hard failure to the user.
+ */
+async function postAudit(body: { url: string; language: string }, attempts = 3) {
+  for (let attempt = 1; ; attempt += 1) {
+    try {
+      const response = await fetch("/api/audits", {
+        body: JSON.stringify(body),
+        headers: { "Content-Type": "application/json" },
+        method: "POST",
+      });
+      const data = await readAuditResponse(response);
+      return { response, data };
+    } catch (error) {
+      // `TypeError` is what fetch throws when the connection is refused/dropped.
+      const transient =
+        error instanceof TransientScannerError || error instanceof TypeError;
+      if (transient && attempt < attempts) {
+        await wait(1000 * attempt);
+        continue;
+      }
+      if (error instanceof TransientScannerError) {
+        throw new Error(
+          "The scanner is unavailable after several attempts. Make sure the app server is running, then try again.",
+        );
+      }
+      throw error;
+    }
+  }
+}
+
+function AiList({ title, items }: { title: string; items: string[] }) {
+  return (
+    <div className="mt-4">
+      <h4 className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
+        {title}
+      </h4>
+      <ul className="mt-2 space-y-1.5">
+        {items.map((item, index) => (
+          <li
+            key={`${index}-${item}`}
+            className="flex gap-2 text-sm leading-6 text-[var(--muted-strong)]"
+          >
+            <span
+              aria-hidden
+              className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--accent)]"
+            />
+            <span>{item}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }
 
@@ -140,12 +214,7 @@ export default function Home() {
     }, 900);
 
     try {
-      const response = await fetch("/api/audits", {
-        body: JSON.stringify({ url, language: locale }),
-        headers: { "Content-Type": "application/json" },
-        method: "POST",
-      });
-      const data = await readAuditResponse(response);
+      const { response, data } = await postAudit({ url, language: locale });
 
       if (!response.ok && !("status" in data)) {
         throw new Error(data.error ?? "The audit could not be completed.");
@@ -414,6 +483,29 @@ export default function Home() {
                     </p>
                   </div>
                 </div>
+
+                {auditReport?.ai ? (
+                  <div className="mt-4 rounded-xl border border-[var(--accent)]/25 bg-[var(--accent)]/[0.06] p-4">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <h3 className="text-sm font-semibold text-white">{t.ai.heading}</h3>
+                      <span className="rounded-full border border-white/15 bg-white/[0.04] px-2.5 py-0.5 text-[11px] font-medium text-[var(--muted-strong)]">
+                        {auditReport.ai.source === "ai" ? t.ai.byClaude : t.ai.heuristic}
+                      </span>
+                    </div>
+                    <p className="mt-2 text-sm leading-6 text-[var(--muted-strong)]">
+                      {auditReport.ai.executiveSummary}
+                    </p>
+                    {auditReport.ai.topIssues.length > 0 ? (
+                      <AiList title={t.ai.topIssues} items={auditReport.ai.topIssues} />
+                    ) : null}
+                    {auditReport.ai.recommendations.length > 0 ? (
+                      <AiList title={t.ai.recommendations} items={auditReport.ai.recommendations} />
+                    ) : null}
+                    {auditReport.ai.uxSuggestions && auditReport.ai.uxSuggestions.length > 0 ? (
+                      <AiList title={t.ai.uxSuggestions} items={auditReport.ai.uxSuggestions} />
+                    ) : null}
+                  </div>
+                ) : null}
               </section>
 
               {/* Issues */}
