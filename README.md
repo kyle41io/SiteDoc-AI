@@ -67,6 +67,7 @@ npm test           # Vitest (unit/component)
 npm run test:watch # Vitest in watch mode
 npm run build      # production build (also type-checks)
 npm run start      # serve the production build
+npm run test:e2e   # Playwright end-to-end smoke test (boots the built app)
 ```
 
 The verification gate before completing a change is: `lint`, `typecheck`, `test`, `build`.
@@ -110,20 +111,52 @@ The full phased roadmap and design (Aurora Glass 3D UI, accessibility/SEO/perfor
 engines, AI remediation, shareable reports, deployment) lives in
 [`docs/superpowers/specs/2026-06-11-sitedoc-ai-roadmap-design.md`](docs/superpowers/specs/2026-06-11-sitedoc-ai-roadmap-design.md).
 
-Shipped: Aurora Glass design system + 3D celestial hero · **axe-core accessibility engine** · **deterministic SEO + performance checks** (categorized, scored, localized) · **AI remediation layer** (Claude or OpenAI + deterministic fallback, localized) · **shareable `/report/{id}` pages + one-click PDF export** · 5-language i18n.
+Shipped: Aurora Glass design system + 3D celestial hero · **axe-core accessibility engine** · **deterministic SEO + performance checks** (categorized, scored, localized) · **AI remediation layer** (Claude or OpenAI + deterministic fallback, localized) · **shareable `/report/{id}` pages + one-click PDF export** · **async job model + durable SQLite store + containerized deploy + CI/E2E** · 5-language i18n.
 
 Upcoming:
 
-- Durable persistence (DB) + async job model and deployment (serverless-ready Playwright, CI)
+- Object storage for screenshots and a managed database for multi-instance scale
 
-## Local Artifact Storage
+## Async Audit Jobs
 
-Scanner results are saved locally for MVP development:
+Submitting a URL returns immediately (`202`) with a `queued` record; the Playwright scan
+and AI enrichment run in a background queue (bounded concurrency, default 2), and the UI
+polls `GET /api/audits?id=` through `queued → running → completed`. This keeps requests
+fast and decouples the heavy work from the response.
 
-```text
-.data/audits/{auditId}.json
-public/audit-artifacts/{auditId}/desktop.png
-public/audit-artifacts/{auditId}/mobile.png
+## Storage
+
+Audit records are accessed only through the `AuditStore` abstraction:
+
+- **Local JSON** (default): `.data/audits/{auditId}.json`.
+- **SQLite** (`AUDIT_STORE=sqlite`): a durable `.data/sitedoc.db` that survives restarts —
+  the default inside the container image.
+
+Screenshots are written to `public/audit-artifacts/{auditId}/{desktop,mobile}.png` and
+served statically. All these paths are git-ignored. For multi-instance scale, move
+screenshots to object storage and point `AuditStore` at a managed database.
+
+## Deployment
+
+Playwright needs a full Chromium, which doesn't fit serverless functions, so the app ships
+as a **container** built on the official Playwright image (Chromium preinstalled):
+
+```bash
+docker build -t sitedoc-ai .
+
+# OPENAI_API_KEY is optional (AI falls back deterministically without it).
+# Mount both volumes to persist audits AND their screenshots across restarts.
+docker run -p 3000:3000 \
+  -e OPENAI_API_KEY=sk-... \
+  -v sitedoc-db:/app/.data \
+  -v sitedoc-shots:/app/public/audit-artifacts \
+  sitedoc-ai
 ```
 
-These paths are ignored by git. A production deployment should move audit records to PostgreSQL and screenshots to object storage.
+The image defaults to `AUDIT_STORE=sqlite`, so the audit **records** persist to `/app/.data`.
+**Screenshots** are written to `/app/public/audit-artifacts` — mount that too (as above) or
+they're lost on restart, leaving reports with broken images. For multi-instance scale,
+move screenshots to object storage and point `AuditStore` at a managed database.
+
+It runs on any container host (Railway, Render, Fly.io, a VM). CI (`.github/workflows/ci.yml`)
+runs lint, typecheck, unit tests, build, and the Playwright E2E on every push/PR.

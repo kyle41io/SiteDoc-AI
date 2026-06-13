@@ -2,15 +2,13 @@ import { randomUUID } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import type { AuditRecord } from "@/lib/audit-types";
 import { auditStore } from "@/lib/store";
-import { runPlaywrightScan } from "@/lib/playwright-scanner";
-import { generateAiReport } from "@/lib/ai";
+import { enqueueAudit, queuedAuditRecord, type AuditJob } from "@/lib/audit/job-queue";
 import { isAuditId } from "@/lib/audit/id";
 import { auditStrings } from "@/lib/audit/audit-i18n";
 import { isLocale } from "@/i18n/config";
 import { validatePublicHttpUrl } from "@/lib/url-validation";
 
 export const runtime = "nodejs";
-export const maxDuration = 60;
 
 function jsonError(message: string, status: number) {
   return NextResponse.json({ error: message }, { status });
@@ -38,62 +36,21 @@ export async function POST(request: NextRequest) {
     return jsonError(error instanceof Error ? error.message : "Invalid URL.", 400);
   }
 
-  const auditId = randomUUID();
-  const createdAt = new Date().toISOString();
-  const runningRecord: AuditRecord = {
-    id: auditId,
+  const job: AuditJob = {
+    auditId: randomUUID(),
     url: normalizedUrl,
-    status: "running",
     language,
-    createdAt,
-    screenshots: {},
-    consoleErrors: [],
-    failedRequests: [],
-    issues: [],
-    metrics: [],
-    scores: {
-      overall: 0,
-      scanner: 0,
-      console: 0,
-      network: 0,
-    },
-    summary: strings.runningSummary,
+    startedAt: new Date().toISOString(),
   };
 
-  await auditStore.save(runningRecord);
+  // Persist a `queued` record, then run the scan in the background and return
+  // immediately. The client polls `GET ?id=` for progress. This keeps the
+  // request fast and decouples the heavy Playwright/AI work from the response.
+  const queued = queuedAuditRecord(job, strings);
+  await auditStore.save(queued);
+  enqueueAudit(job);
 
-  try {
-    const completedRecord = await runPlaywrightScan({
-      auditId,
-      url: normalizedUrl,
-      startedAt: createdAt,
-      language,
-    });
-
-    // Enrich with the AI remediation layer. `generateAiReport` is non-blocking
-    // and never throws — it falls back to a deterministic report when AI is
-    // unconfigured or fails — so the audit always completes.
-    const enrichedRecord: AuditRecord = {
-      ...completedRecord,
-      ai: await generateAiReport(completedRecord),
-    };
-
-    await auditStore.save(enrichedRecord);
-
-    return NextResponse.json(enrichedRecord);
-  } catch (error) {
-    const failedRecord: AuditRecord = {
-      ...runningRecord,
-      status: "failed",
-      completedAt: new Date().toISOString(),
-      error: error instanceof Error ? error.message : "The scan failed.",
-      summary: strings.failedSummary,
-    };
-
-    await auditStore.save(failedRecord);
-
-    return NextResponse.json(failedRecord, { status: 500 });
-  }
+  return NextResponse.json(queued, { status: 202 });
 }
 
 export async function GET(request: NextRequest) {

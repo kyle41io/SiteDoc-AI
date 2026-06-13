@@ -1,0 +1,25 @@
+import { defineConfig } from "@playwright/test";
+
+/**
+ * E2E config. Specs live in `e2e/` (vitest only scans `src/`, so the two
+ * runners don't collide). The webServer boots the production build; locally it
+ * reuses an already-running dev/prod server on :3000.
+ */
+export default defineConfig({
+  testDir: "./e2e",
+  timeout: 120_000,
+  expect: { timeout: 10_000 },
+  fullyParallel: false,
+  workers: 1,
+  reporter: process.env.CI ? "github" : "list",
+  use: {
+    baseURL: "http://localhost:3000",
+    trace: "on-first-retry",
+  },
+  webServer: {
+    command: "npm run start",
+    url: "http://localhost:3000",
+    timeout: 120_000,
+    reuseExistingServer: !process.env.CI,
+  },
+});

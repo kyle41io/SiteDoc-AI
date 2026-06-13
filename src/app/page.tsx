@@ -47,6 +47,32 @@ async function readAuditResponse(response: Response) {
 const wait = (ms: number) => new Promise((resolve) => window.setTimeout(resolve, ms));
 
 /**
+ * Poll the audit record until it reaches a terminal state. The POST now returns
+ * a `queued` record immediately and the scan runs in the background, so the UI
+ * watches `GET ?id=` for `completed`/`failed`. Transient blips (server restart,
+ * non-JSON) are tolerated; gives up after `timeoutMs`.
+ */
+async function pollAudit(id: string, timeoutMs = 120_000): Promise<AuditRecord> {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    await wait(1500);
+    try {
+      const res = await fetch(`/api/audits?id=${encodeURIComponent(id)}`);
+      const isJson = (res.headers.get("content-type") ?? "").includes("application/json");
+      if (res.ok && isJson) {
+        const record = (await res.json()) as AuditRecord;
+        if (record.status === "completed" || record.status === "failed") {
+          return record;
+        }
+      }
+    } catch {
+      // Transient network/server blip — keep polling until the deadline.
+    }
+  }
+  throw new Error("The audit timed out. Please try again.");
+}
+
+/**
  * POST an audit, retrying transient unavailability (server restart / network
  * blip) a few times with backoff before surfacing a hard failure to the user.
  */
@@ -108,7 +134,9 @@ export default function Home() {
         throw new Error(data.error ?? "The audit could not be completed.");
       }
 
-      const report = data as AuditRecord;
+      // POST returns a queued record; poll until the background job finishes.
+      const queued = data as AuditRecord;
+      const report = await pollAudit(queued.id);
       setAuditReport(report);
       setStatus(report.status === "failed" ? "failed" : "completed");
 

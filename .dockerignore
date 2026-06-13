@@ -1,0 +1,14 @@
+node_modules
+.next
+.data
+.git
+.github
+.env*
+!.env.example
+public/audit-artifacts
+playwright-report
+test-results
+.claude
+.codex
+docs
+*.log
