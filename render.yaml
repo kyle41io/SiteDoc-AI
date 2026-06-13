@@ -1,0 +1,37 @@
+# Render Blueprint — deploys SiteDoc AI as a Docker web service.
+# Render builds the Dockerfile (Chromium preinstalled), runs a long-lived
+# container (so the async job queue + scan work), and injects $PORT (the app's
+# `next start` reads it; HOSTNAME=0.0.0.0 is set in the Dockerfile).
+#
+# Usage: push this repo to GitHub, then in Render: New → Blueprint → pick the repo.
+services:
+  - type: web
+    name: sitedoc-ai
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    region: oregon
+    # Chromium needs RAM headroom — Standard (2 GB) is the safe floor. On smaller
+    # instances a scan can OOM; if you must use a smaller plan, also set
+    # SITEDOC_MAX_CONCURRENT_SCANS=1 below to cap peak memory to one browser.
+    plan: standard
+    healthCheckPath: /
+    autoDeploy: true
+    envVars:
+      - key: AUDIT_STORE
+        value: sqlite
+      # Optional. Leave unset to use the deterministic fallback. Set the real
+      # value in the Render dashboard (never commit it).
+      - key: OPENAI_API_KEY
+        sync: false
+      # Uncomment on smaller instances to limit peak memory to one Chromium:
+      # - key: SITEDOC_MAX_CONCURRENT_SCANS
+      #   value: "1"
+    # Persists the SQLite DB + audit records across restarts/redeploys. (Render
+    # allows one disk per service; screenshots under public/audit-artifacts stay
+    # ephemeral and reset on redeploy — the report still renders, just without
+    # old thumbnails. Object storage is the future fix.) Disks require a paid plan.
+    disk:
+      name: sitedoc-data
+      mountPath: /app/.data
+      sizeGB: 1
