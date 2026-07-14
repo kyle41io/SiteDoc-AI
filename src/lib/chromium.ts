@@ -12,5 +12,7 @@ import type { LaunchOptions } from "playwright";
  */
 export const CHROMIUM_LAUNCH_OPTIONS: LaunchOptions = {
   headless: true,
-  args: ["--no-sandbox", "--disable-dev-shm-usage"],
+  // `--disable-gpu` trims memory on headless hosts (no GPU anyway), which
+  // matters on small instances like Render's 512 MB free tier.
+  args: ["--no-sandbox", "--disable-dev-shm-usage", "--disable-gpu"],
 };
