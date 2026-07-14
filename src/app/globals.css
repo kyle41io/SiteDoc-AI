@@ -147,3 +147,22 @@ body {
     transform: none;
   }
 }
+
+/* Print / "Save as PDF" — the /report/[id]?print=1 view. Keep the dark theme
+   and colored score bars in the PDF regardless of the browser's "background
+   graphics" toggle, and drop the decorative full-screen backdrop. */
+@media print {
+  *,
+  *::before,
+  *::after {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+  .aurora-bg {
+    display: none !important;
+  }
+  html,
+  body {
+    background: #0a0e23 !important;
+  }
+}
