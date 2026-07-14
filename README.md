@@ -45,10 +45,10 @@ Copy `.env.example` to `.env.local` to configure. All variables are optional.
 Every completed audit gets a server-rendered, read-only page at **`/report/{id}`** that
 renders in the language the audit was created in (independent of the viewer's language
 switcher). From the dashboard, **Copy link** / **Open report** share it; from the report
-page, **Download PDF** opens the print-optimized view (`?print=1`) and triggers the
-browser's "Save as PDF" — client-side, so it needs no server-side browser and works on
-tiny hosts. Reports are read from the `AuditStore`, so a database-backed store will make
-them durable across deploys without any change to these pages.
+page, **Download PDF** returns a real PDF file — the server renders the print-optimized
+view (`?print=1`) over the internal loopback with the same Chromium the scanner uses.
+Reports are read from the `AuditStore`, so a database-backed store will make them durable
+across deploys without any change to these pages.
 
 ## Getting Started
 

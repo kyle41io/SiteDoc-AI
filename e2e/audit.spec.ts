@@ -29,7 +29,8 @@ test("async audit completes and is served as a report + PDF", async ({ request }
   expect(report.status()).toBe(200);
   expect(await report.text()).toContain("example.com");
 
-  // Print view (used by the client-side "Download PDF" / window.print flow) renders.
-  const printView = await request.get(`/report/${queued.id}?print=1`);
-  expect(printView.status()).toBe(200);
+  // PDF export returns a real downloadable PDF.
+  const pdf = await request.get(`/report/${queued.id}/pdf`);
+  expect(pdf.status()).toBe(200);
+  expect(pdf.headers()["content-type"]).toContain("application/pdf");
 });

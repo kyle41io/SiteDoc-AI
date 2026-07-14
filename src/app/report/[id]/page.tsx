@@ -5,7 +5,6 @@ import { isAuditId } from "@/lib/audit/id";
 import { DEFAULT_LOCALE, isLocale } from "@/i18n/config";
 import { dictionaries } from "@/i18n/dictionaries";
 import { ReportView } from "@/components/report/ReportView";
-import { AutoPrint } from "@/components/report/AutoPrint";
 
 // Reports are read from the store per request — never statically cached.
 export const dynamic = "force-dynamic";
@@ -57,9 +56,7 @@ export default async function ReportPage({ params, searchParams }: ReportPagePro
           <div className="flex flex-wrap gap-2">
             <a
               className="rounded-xl border border-white/15 px-3 py-2 text-sm font-medium text-[var(--muted-strong)] transition hover:border-white/30 hover:text-white"
-              href={`/report/${record.id}?print=1`}
-              target="_blank"
-              rel="noreferrer"
+              href={`/report/${record.id}/pdf`}
             >
               {t.report.downloadPdf}
             </a>
@@ -74,7 +71,6 @@ export default async function ReportPage({ params, searchParams }: ReportPagePro
       </header>
 
       <ReportView report={record} t={t} printMode={printMode} />
-      {printMode ? <AutoPrint /> : null}
     </main>
   );
 }
