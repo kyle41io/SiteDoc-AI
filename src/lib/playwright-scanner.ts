@@ -1,5 +1,6 @@
 import { mkdir } from "node:fs/promises";
 import path from "node:path";
+import { CHROMIUM_LAUNCH_OPTIONS } from "@/lib/chromium";
 import { chromium, type Browser, type BrowserContext, type Page } from "playwright";
 import type {
   AuditIssue,
@@ -317,9 +318,7 @@ export async function runPlaywrightScan(options: ScanOptions): Promise<AuditReco
 
   await mkdir(artifactDirectory, { recursive: true });
 
-  const browser = await chromium.launch({
-    headless: true,
-  });
+  const browser = await chromium.launch(CHROMIUM_LAUNCH_OPTIONS);
 
   try {
     const { finalUrl, violations, seo, perf } = await captureViewport(

@@ -32,9 +32,10 @@ COPY --from=builder /app/.next ./.next
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/next.config.ts ./next.config.ts
 
-# Writable dirs for the SQLite DB and runtime screenshot artifacts, owned by the
-# image's non-root user. Mount a volume at /app/.data to persist audits.
-RUN mkdir -p .data public/audit-artifacts && chown -R pwuser:pwuser /app
+# Writable dir for the SQLite DB, audit records, and screenshot artifacts (all
+# under .data now), owned by the image's non-root user. Mount a volume at
+# /app/.data to persist everything across restarts.
+RUN mkdir -p .data && chown -R pwuser:pwuser /app
 USER pwuser
 
 EXPOSE 3000

@@ -119,8 +119,10 @@ function Saturn({ reduce }: { reduce: boolean }) {
 
   // Ring disk with radial UVs so the strip texture maps inner→outer.
   const ringGeo = useMemo(() => {
-    const inner = 1.45;
-    const outer = 2.6;
+    // Kept within the camera's visible half-width (~2.42 at z=5.2) so the rings
+    // never clip against the canvas edge or crowd the adjacent text.
+    const inner = 1.3;
+    const outer = 2.05;
     const geo = new THREE.RingGeometry(inner, outer, 96, 1);
     const pos = geo.attributes.position;
     const uv = geo.attributes.uv;
@@ -219,7 +221,7 @@ function Sun({ reduce }: { reduce: boolean }) {
           />
         </mesh>
       </group>
-      <sprite scale={[5, 5, 1]}>
+      <sprite scale={[4.2, 4.2, 1]}>
         <spriteMaterial
           map={glow}
           color="#ff9a3c"

@@ -1,3 +1,14 @@
+<!-- The YAML block below configures a Hugging Face Docker Space (ignored elsewhere). -->
+---
+title: SiteDoc AI
+emoji: 🛰️
+colorFrom: indigo
+colorTo: blue
+sdk: docker
+app_port: 3000
+pinned: false
+---
+
 # SiteDoc AI
 
 SiteDoc AI is an AI-assisted website QA dashboard for generating developer-ready audit reports across accessibility, performance, SEO, and UX quality. It features an "Aurora Glass" UI with a score-driven 3D celestial hero (the better the score, the grander the body — Moon → … → Galaxy) and is available in 5 languages.
@@ -80,7 +91,7 @@ The verification gate before completing a change is: `lint`, `typecheck`, `test`
 - Browser console error collection
 - Failed network request and HTTP 4xx/5xx collection
 - Local JSON audit records under `.data/audits`
-- Local screenshot artifacts under `public/audit-artifacts`
+- Local screenshot artifacts under `.data/audit-artifacts` (served via an API route)
 - Scanner, console, network, and overall scorecards
 - Categorized issue list with severity labels and remediation guidance
 - Responsive dashboard layout
@@ -132,9 +143,11 @@ Audit records are accessed only through the `AuditStore` abstraction:
 - **SQLite** (`AUDIT_STORE=sqlite`): a durable `.data/sitedoc.db` that survives restarts —
   the default inside the container image.
 
-Screenshots are written to `public/audit-artifacts/{auditId}/{desktop,mobile}.png` and
-served statically. All these paths are git-ignored. For multi-instance scale, move
-screenshots to object storage and point `AuditStore` at a managed database.
+Screenshots are written to `.data/audit-artifacts/{auditId}/{desktop,mobile}.png` and
+served by the `/api/artifacts/[id]/[file]` route (not from `public/`, which `next start`
+only serves for files present at build time). All `.data` paths are git-ignored. For
+multi-instance scale, move screenshots to object storage and point `AuditStore` at a
+managed database.
 
 ## Deployment
 
@@ -148,15 +161,15 @@ docker build -t sitedoc-ai .
 # Mount both volumes to persist audits AND their screenshots across restarts.
 docker run -p 3000:3000 \
   -e OPENAI_API_KEY=sk-... \
-  -v sitedoc-db:/app/.data \
-  -v sitedoc-shots:/app/public/audit-artifacts \
+  -v sitedoc-data:/app/.data \
   sitedoc-ai
 ```
 
-The image defaults to `AUDIT_STORE=sqlite`, so the audit **records** persist to `/app/.data`.
-**Screenshots** are written to `/app/public/audit-artifacts` — mount that too (as above) or
-they're lost on restart, leaving reports with broken images. For multi-instance scale,
-move screenshots to object storage and point `AuditStore` at a managed database.
+The image defaults to `AUDIT_STORE=sqlite`. Audit **records and screenshots** both live
+under `/app/.data`, so the single volume above persists everything across restarts.
+(Screenshots are served by the `/api/artifacts/[id]/[file]` route — not from `public/` —
+because `next start` won't serve files written there after build.) For multi-instance
+scale, move screenshots to object storage and point `AuditStore` at a managed database.
 
 It runs on any container host (Railway, Render, Fly.io, a VM). CI (`.github/workflows/ci.yml`)
 runs lint, typecheck, unit tests, build, and the Playwright E2E on every push/PR.

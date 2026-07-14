@@ -20,7 +20,7 @@ export function ScoreCard({ label, value, accent = "var(--accent)", emphasis }: 
   return (
     <div className="glass overflow-hidden rounded-2xl">
       <div className="px-4 pt-3 pb-3.5">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
+        <p className="min-h-[2.1em] text-[10px] font-semibold uppercase leading-tight tracking-[0.08em] text-[var(--muted)] [overflow-wrap:anywhere]">
           {label}
         </p>
         <p

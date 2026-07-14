@@ -43,15 +43,19 @@ export class LocalAuditStore implements AuditStore {
 }
 
 // --- Local screenshot artifact helpers -------------------------------------
-// Screenshots are written to /public so Next can serve them statically during
-// development. Object storage replaces these helpers when the app is deployed.
+// Screenshots live under `.data/` (NOT `public/`): Next's production server only
+// serves files that existed in `public/` at build time, so runtime-written
+// screenshots there 404. Instead they are served by a route handler
+// (`/api/artifacts/[id]/[file]`) that reads this directory. Keeping them in
+// `.data/` also means they persist alongside the SQLite DB on the same volume.
+// Object storage replaces these helpers at multi-instance scale.
 
-const artifactRoot = path.join(process.cwd(), "public", "audit-artifacts");
+const artifactRoot = path.join(process.cwd(), ".data", "audit-artifacts");
 
 export function getAuditArtifactDirectory(auditId: string) {
   return path.join(artifactRoot, auditId);
 }
 
 export function getAuditArtifactUrl(auditId: string, filename: string) {
-  return `/audit-artifacts/${auditId}/${filename}`;
+  return `/api/artifacts/${auditId}/${filename}`;
 }

@@ -257,7 +257,7 @@ export function ReportView({ report, t, isRunning = false, fallbackUrl, actions,
       {/* Command Center hero */}
       <GlassCard strong className="overflow-hidden p-5">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-center">
-          <div className="flex items-center gap-5">
+          <div className="flex min-w-0 items-center gap-5 lg:max-w-[46%]">
             <div className="relative flex h-48 w-48 shrink-0 items-center justify-center sm:h-56 sm:w-56">
               {printMode ? (
                 <StaticScore
@@ -270,7 +270,7 @@ export function ReportView({ report, t, isRunning = false, fallbackUrl, actions,
                 <OrbFallback score={0} color="#6f8dff" />
               )}
             </div>
-            <div>
+            <div className="min-w-0">
               <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--muted)]">
                 {t.overallHealth}
               </p>
@@ -283,7 +283,10 @@ export function ReportView({ report, t, isRunning = false, fallbackUrl, actions,
                   {t.celestial[tier]}
                 </p>
               ) : null}
-              <p className="mt-1 break-all text-sm text-[var(--muted)]">
+              <p
+                className="mt-1 line-clamp-2 break-all text-sm text-[var(--muted)]"
+                title={report?.finalUrl ?? fallbackUrl}
+              >
                 {report?.finalUrl ?? (isRunning ? t.scanning : fallbackUrl)}
               </p>
             </div>

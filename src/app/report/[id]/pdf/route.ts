@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { chromium } from "playwright";
 import { auditStore } from "@/lib/store";
 import { isAuditId } from "@/lib/audit/id";
+import { CHROMIUM_LAUNCH_OPTIONS } from "@/lib/chromium";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -45,7 +46,7 @@ export async function GET(
   let browser;
   pdfsInFlight += 1;
   try {
-    browser = await chromium.launch({ headless: true });
+    browser = await chromium.launch(CHROMIUM_LAUNCH_OPTIONS);
     const page = await browser.newPage();
     await page.emulateMedia({ media: "screen" });
     await page.goto(target, { waitUntil: "networkidle", timeout: 30_000 });
