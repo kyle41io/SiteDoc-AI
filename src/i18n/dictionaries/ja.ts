@@ -119,7 +119,10 @@ export const ja: Dictionary = {
     overallLabel: "現在の総合ヘルス",
     scoresHeading: "基準スコア（0〜100）",
     issuesHeading: "修正すべき問題",
-    issuesLine: (n: number) => `全 ${n} 件、影響の大きい順。`,
+    issuesLine: {
+      one: "全 1 件、影響の大きい順。",
+      other: "全 {count} 件、影響の大きい順。",
+    },
     severityHeading: { High: "優先度：高", Medium: "優先度：中", Low: "優先度：低" },
     whyLabel: "なぜ重要か",
     elementLabel: "要素",

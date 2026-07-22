@@ -119,7 +119,10 @@ export const vi: Dictionary = {
     overallLabel: "Sức khỏe tổng thể hiện tại",
     scoresHeading: "Điểm cơ sở (0–100)",
     issuesHeading: "Vấn đề cần khắc phục",
-    issuesLine: (n: number) => `${n} vấn đề, ưu tiên tác động lớn nhất trước.`,
+    issuesLine: {
+      one: "1 vấn đề, ưu tiên tác động lớn nhất trước.",
+      other: "{count} vấn đề, ưu tiên tác động lớn nhất trước.",
+    },
     severityHeading: { High: "Ưu tiên cao", Medium: "Ưu tiên trung bình", Low: "Ưu tiên thấp" },
     whyLabel: "Vì sao quan trọng",
     elementLabel: "Phần tử",

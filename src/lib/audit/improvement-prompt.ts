@@ -55,7 +55,12 @@ export function buildImprovementPrompt(record: AuditRecord, t: Dictionary): stri
   if (record.issues.length === 0) {
     lines.push("", p.noIssues, "");
   } else {
-    lines.push(`_${p.issuesLine(record.issues.length)}_`, "");
+    const count = record.issues.length;
+    const line = (count === 1 ? p.issuesLine.one : p.issuesLine.other).replace(
+      "{count}",
+      String(count),
+    );
+    lines.push(`_${line}_`, "");
     let index = 0;
     for (const severity of SEVERITY_ORDER) {
       const group = record.issues.filter((issue) => issue.severity === severity);

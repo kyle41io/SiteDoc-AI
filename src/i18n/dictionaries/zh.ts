@@ -111,7 +111,10 @@ export const zh: Dictionary = {
     overallLabel: "当前整体健康度",
     scoresHeading: "基准评分（0–100）",
     issuesHeading: "待修复的问题",
-    issuesLine: (n: number) => `共 ${n} 个问题，按影响从高到低排列。`,
+    issuesLine: {
+      one: "共 1 个问题，按影响从高到低排列。",
+      other: "共 {count} 个问题，按影响从高到低排列。",
+    },
     severityHeading: { High: "高优先级", Medium: "中优先级", Low: "低优先级" },
     whyLabel: "为何重要",
     elementLabel: "元素",

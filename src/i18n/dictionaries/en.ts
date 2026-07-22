@@ -119,7 +119,10 @@ export const en = {
     overallLabel: "Current overall health",
     scoresHeading: "Baseline scores (0–100)",
     issuesHeading: "Issues to fix",
-    issuesLine: (n: number) => `${n} issue${n === 1 ? "" : "s"}, highest impact first.`,
+    issuesLine: {
+      one: "1 issue, highest impact first.",
+      other: "{count} issues, highest impact first.",
+    },
     severityHeading: { High: "High priority", Medium: "Medium priority", Low: "Low priority" },
     whyLabel: "Why it matters",
     elementLabel: "Element",

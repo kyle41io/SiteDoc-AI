@@ -120,7 +120,10 @@ export const es: Dictionary = {
     overallLabel: "Salud general actual",
     scoresHeading: "Puntuaciones base (0–100)",
     issuesHeading: "Problemas por corregir",
-    issuesLine: (n: number) => `${n} problema${n === 1 ? "" : "s"}, de mayor a menor impacto.`,
+    issuesLine: {
+      one: "1 problema, de mayor a menor impacto.",
+      other: "{count} problemas, de mayor a menor impacto.",
+    },
     severityHeading: { High: "Prioridad alta", Medium: "Prioridad media", Low: "Prioridad baja" },
     whyLabel: "Por qué importa",
     elementLabel: "Elemento",

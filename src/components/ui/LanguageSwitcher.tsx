@@ -141,7 +141,7 @@ export function LanguageSwitcher() {
           aria-activedescendant={optionId(activeIndex)}
           tabIndex={-1}
           onKeyDown={onListKeyDown}
-          className="glass-strong absolute right-0 z-50 mt-2 min-w-[10rem] overflow-hidden rounded-xl border border-white/12 p-1 shadow-[0_20px_50px_rgba(0,0,0,0.45)] outline-none"
+          className="glass-menu absolute right-0 z-50 mt-2 min-w-[10rem] overflow-hidden rounded-xl p-1 shadow-[0_20px_50px_rgba(0,0,0,0.55)] outline-none"
         >
           {LOCALES.map((code, index) => {
             const selected = code === locale;

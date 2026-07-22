@@ -20,6 +20,9 @@
   --glass-bg-strong: rgba(255, 255, 255, 0.09);
   --glass-border: rgba(255, 255, 255, 0.12);
   --glass-border-strong: rgba(255, 255, 255, 0.22);
+  /* Near-opaque base for floating menus/popovers, so their contents stay
+     legible over arbitrary page content instead of bleeding through. */
+  --menu-bg: rgba(16, 20, 38, 0.94);
 
   /* Brand accents */
   --accent: #6f8dff;
@@ -103,6 +106,15 @@ body {
 
 .glass-strong {
   background: var(--glass-bg-strong);
+  border: 1px solid var(--glass-border-strong);
+  backdrop-filter: blur(18px) saturate(150%);
+  -webkit-backdrop-filter: blur(18px) saturate(150%);
+}
+
+/* Frosted floating-menu surface: near-opaque so overlapped content doesn't
+   bleed through (unlike the translucent panel glasses above). */
+.glass-menu {
+  background: var(--menu-bg);
   border: 1px solid var(--glass-border-strong);
   backdrop-filter: blur(18px) saturate(150%);
   -webkit-backdrop-filter: blur(18px) saturate(150%);
