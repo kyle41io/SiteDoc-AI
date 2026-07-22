@@ -44,6 +44,7 @@ export const vi: Dictionary = {
     issues: "Vấn đề",
     screenshots: "Ảnh chụp",
     metrics: "Chỉ số",
+    aiPrompt: "Prompt AI",
   },
   summary: "Tóm tắt",
   summaryEmpty: "Chạy phân tích để tạo tóm tắt từ tín hiệu trình duyệt thực tế.",
@@ -103,5 +104,38 @@ export const vi: Dictionary = {
     openReport: "Mở báo cáo",
     notFoundTitle: "Không tìm thấy báo cáo",
     notFoundBody: "Báo cáo kiểm tra này không tồn tại hoặc không còn khả dụng.",
+  },
+  aiPrompt: {
+    intro:
+      "Dán nội dung này vào một AI agent lập trình (Claude Code, Codex, Copilot…) để khắc phục mọi vấn đề mà phân tích này tìm ra.",
+    empty: "Chạy phân tích để tạo một prompt sẵn dùng cho AI agent lập trình của bạn.",
+    copy: "Sao chép prompt",
+    copied: "Đã sao chép!",
+    heading: "Bản tóm tắt cải thiện website",
+    role:
+      "Bạn là một kỹ sư web cấp cao. Hãy cải thiện website dưới đây dựa trên các phát hiện từ bản phân tích QA tự động này. Xử lý các vấn đề theo thứ tự ưu tiên và thực hiện những thay đổi nhỏ nhất, an toàn nhất để khắc phục từng vấn đề.",
+    targetHeading: "Mục tiêu",
+    urlLabel: "URL",
+    overallLabel: "Sức khỏe tổng thể hiện tại",
+    scoresHeading: "Điểm cơ sở (0–100)",
+    issuesHeading: "Vấn đề cần khắc phục",
+    issuesLine: (n: number) => `${n} vấn đề, ưu tiên tác động lớn nhất trước.`,
+    severityHeading: { High: "Ưu tiên cao", Medium: "Ưu tiên trung bình", Low: "Ưu tiên thấp" },
+    whyLabel: "Vì sao quan trọng",
+    elementLabel: "Phần tử",
+    fixLabel: "Cách khắc phục",
+    referenceLabel: "Tham khảo",
+    noIssues:
+      "Không phát hiện vấn đề chặn nào. Hãy giữ nguyên chất lượng hiện tại và phân tích lại sau các thay đổi sau này.",
+    aiHeading: "Khuyến nghị bổ sung từ AI",
+    proceedHeading: "Cách tiến hành",
+    proceed: [
+      "Khắc phục các vấn đề ưu tiên cao trước, rồi đến trung bình, rồi thấp.",
+      "Giữ nguyên thiết kế, bố cục và chức năng hiện có — chỉ thay đổi những gì mỗi vấn đề được liệt kê yêu cầu.",
+      "Sau khi thay đổi, chạy lại phân tích SiteDoc AI và xác nhận điểm từng hạng mục được cải thiện (hướng tới 90+ khi khả thi).",
+    ],
+    deliverHeading: "Kết quả bàn giao",
+    deliver:
+      "Hãy đưa ra một kế hoạch ngắn gọn, rồi các thay đổi mã cụ thể (diff) cho từng cách khắc phục, nhóm theo vấn đề.",
   },
 };

@@ -44,6 +44,7 @@ export const es: Dictionary = {
     issues: "Problemas",
     screenshots: "Capturas",
     metrics: "Métricas",
+    aiPrompt: "Prompt de IA",
   },
   summary: "Resumen",
   summaryEmpty:
@@ -104,5 +105,38 @@ export const es: Dictionary = {
     openReport: "Abrir informe",
     notFoundTitle: "Informe no encontrado",
     notFoundBody: "Este informe de auditoría no existe o ya no está disponible.",
+  },
+  aiPrompt: {
+    intro:
+      "Pega esto en un agente de IA de programación (Claude Code, Codex, Copilot…) para corregir todo lo que encontró este análisis.",
+    empty: "Ejecuta un análisis para generar un prompt listo para usar con tu agente de IA.",
+    copy: "Copiar prompt",
+    copied: "¡Copiado!",
+    heading: "Informe de mejora del sitio web",
+    role:
+      "Eres un ingeniero web senior. Mejora el sitio web de abajo usando los hallazgos de este análisis de QA automatizado. Trabaja los problemas por orden de prioridad y haz los cambios más pequeños y seguros que resuelvan cada uno.",
+    targetHeading: "Objetivo",
+    urlLabel: "URL",
+    overallLabel: "Salud general actual",
+    scoresHeading: "Puntuaciones base (0–100)",
+    issuesHeading: "Problemas por corregir",
+    issuesLine: (n: number) => `${n} problema${n === 1 ? "" : "s"}, de mayor a menor impacto.`,
+    severityHeading: { High: "Prioridad alta", Medium: "Prioridad media", Low: "Prioridad baja" },
+    whyLabel: "Por qué importa",
+    elementLabel: "Elemento",
+    fixLabel: "Corrección",
+    referenceLabel: "Referencia",
+    noIssues:
+      "No se detectaron problemas bloqueantes. Conserva la calidad actual y vuelve a analizar tras futuros cambios.",
+    aiHeading: "Recomendaciones adicionales de la IA",
+    proceedHeading: "Cómo proceder",
+    proceed: [
+      "Corrige primero los problemas de prioridad alta, luego media y luego baja.",
+      "Conserva el diseño, la maquetación y la funcionalidad existentes: cambia solo lo que exija cada problema listado.",
+      "Tras los cambios, vuelve a ejecutar un análisis de SiteDoc AI y confirma que cada puntuación mejora (apunta a 90+ cuando sea posible).",
+    ],
+    deliverHeading: "Entrega",
+    deliver:
+      "Ofrece un breve plan y luego los cambios de código concretos (diffs) para cada corrección, agrupados por problema.",
   },
 };

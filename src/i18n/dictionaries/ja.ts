@@ -44,6 +44,7 @@ export const ja: Dictionary = {
     issues: "問題",
     screenshots: "スクリーンショット",
     metrics: "指標",
+    aiPrompt: "AI 修正プロンプト",
   },
   summary: "サマリー",
   summaryEmpty: "監査を実行すると、実際のブラウザ信号からサマリーを生成します。",
@@ -103,5 +104,38 @@ export const ja: Dictionary = {
     openReport: "レポートを開く",
     notFoundTitle: "レポートが見つかりません",
     notFoundBody: "この監査レポートは存在しないか、利用できなくなりました。",
+  },
+  aiPrompt: {
+    intro:
+      "これを AI コーディングエージェント（Claude Code、Codex、Copilot…）に貼り付けると、この監査で見つかった問題をすべて修正できます。",
+    empty: "監査を実行すると、AI コーディングエージェントにそのまま渡せるプロンプトを生成します。",
+    copy: "プロンプトをコピー",
+    copied: "コピーしました！",
+    heading: "ウェブサイト改善ブリーフ",
+    role:
+      "あなたはシニア Web エンジニアです。この自動 QA 監査の結果をもとに、下記のウェブサイトを改善してください。問題は優先度の高い順に対応し、それぞれを解決する最小かつ安全な変更を行ってください。",
+    targetHeading: "対象",
+    urlLabel: "URL",
+    overallLabel: "現在の総合ヘルス",
+    scoresHeading: "基準スコア（0〜100）",
+    issuesHeading: "修正すべき問題",
+    issuesLine: (n: number) => `全 ${n} 件、影響の大きい順。`,
+    severityHeading: { High: "優先度：高", Medium: "優先度：中", Low: "優先度：低" },
+    whyLabel: "なぜ重要か",
+    elementLabel: "要素",
+    fixLabel: "修正方法",
+    referenceLabel: "参考",
+    noIssues:
+      "ブロッキングな問題は検出されませんでした。現在の品質を維持し、今後の変更後に再監査してください。",
+    aiHeading: "AI による追加の推奨事項",
+    proceedHeading: "進め方",
+    proceed: [
+      "優先度：高の問題から先に、次に中、最後に低の順で修正してください。",
+      "既存のデザイン・レイアウト・機能は維持し、リストされた問題が求める箇所だけを変更してください。",
+      "変更後は SiteDoc AI の監査を再実行し、各カテゴリのスコアが改善したことを確認してください（可能な範囲で 90 以上を目指します）。",
+    ],
+    deliverHeading: "成果物",
+    deliver:
+      "まず短い計画を示し、その後、問題ごとにまとめた各修正の具体的なコード変更（差分）を提示してください。",
   },
 };

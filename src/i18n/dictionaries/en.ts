@@ -44,6 +44,7 @@ export const en = {
     issues: "Issues",
     screenshots: "Screenshots",
     metrics: "Metrics",
+    aiPrompt: "AI Fix Prompt",
   },
   summary: "Summary",
   summaryEmpty: "Run an audit to generate a summary from real browser signals.",
@@ -103,6 +104,39 @@ export const en = {
     openReport: "Open report",
     notFoundTitle: "Report not found",
     notFoundBody: "This audit report does not exist or is no longer available.",
+  },
+  aiPrompt: {
+    intro:
+      "Paste this into an AI coding agent (Claude Code, Codex, Copilot…) to fix everything this audit found.",
+    empty: "Run an audit to generate a ready-to-use prompt for your AI coding agent.",
+    copy: "Copy prompt",
+    copied: "Copied!",
+    heading: "Website improvement brief",
+    role:
+      "You are a senior web engineer. Improve the website below using the findings from this automated QA audit. Work through the issues in priority order and make the smallest, safe changes that resolve each one.",
+    targetHeading: "Target",
+    urlLabel: "URL",
+    overallLabel: "Current overall health",
+    scoresHeading: "Baseline scores (0–100)",
+    issuesHeading: "Issues to fix",
+    issuesLine: (n: number) => `${n} issue${n === 1 ? "" : "s"}, highest impact first.`,
+    severityHeading: { High: "High priority", Medium: "Medium priority", Low: "Low priority" },
+    whyLabel: "Why it matters",
+    elementLabel: "Element",
+    fixLabel: "Fix",
+    referenceLabel: "Reference",
+    noIssues:
+      "No blocking issues were detected. Preserve the current quality and re-audit after future changes.",
+    aiHeading: "Additional AI recommendations",
+    proceedHeading: "How to proceed",
+    proceed: [
+      "Fix High priority issues first, then Medium, then Low.",
+      "Preserve the existing design, layout, and functionality — change only what a listed issue requires.",
+      "After the changes, re-run a SiteDoc AI audit and confirm each category score improves (aim for 90+ where feasible).",
+    ],
+    deliverHeading: "Deliver",
+    deliver:
+      "Provide a short plan, then the concrete code changes (diffs) for each fix, grouped by issue.",
   },
 };
 

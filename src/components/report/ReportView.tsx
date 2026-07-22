@@ -2,6 +2,7 @@
 
 import { useMemo, useState, type ReactNode } from "react";
 import type { AuditCategory, AuditRecord } from "@/lib/audit-types";
+import { buildImprovementPrompt } from "@/lib/audit/improvement-prompt";
 import { CATEGORY_ACCENT } from "@/lib/audit/category-meta";
 import { celestialTier, CELESTIAL_COLOR } from "@/lib/celestial";
 import { cn } from "@/lib/cn";
@@ -13,7 +14,7 @@ import { CategoryBadge, SeverityBadge } from "@/components/ui/badges";
 import { HealthOrbMount, OrbFallback } from "@/components/three/HealthOrbMount";
 
 type FilterValue = AuditCategory | "All";
-type DetailTab = "overview" | "issues" | "screenshots" | "metrics";
+type DetailTab = "overview" | "issues" | "screenshots" | "metrics" | "aiPrompt";
 
 export type ReportViewProps = {
   /** The report to render, or null for the dashboard's idle/running state. */
@@ -70,6 +71,51 @@ function ScreenshotPanel({ label, emptyLabel, src }: { label: string; emptyLabel
   );
 }
 
+/**
+ * "AI Fix Prompt" panel: an explainer + copy button over the deterministic
+ * improvement brief. The copy control is hidden in print mode (a static PDF
+ * can't copy), where the brief just renders as text.
+ */
+function AiPromptPanel({ prompt, t, printMode }: { prompt: string; t: Dictionary; printMode: boolean }) {
+  const [copied, setCopied] = useState(false);
+
+  async function handleCopy() {
+    try {
+      await navigator.clipboard.writeText(prompt);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Clipboard may be unavailable (insecure context); the text stays selectable.
+    }
+  }
+
+  return (
+    <div>
+      {!printMode ? (
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <p className="max-w-prose text-sm leading-6 text-[var(--muted-strong)]">{t.aiPrompt.intro}</p>
+          <button
+            type="button"
+            onClick={handleCopy}
+            aria-live="polite"
+            className={cn(
+              "shrink-0 rounded-xl border px-3.5 py-2 text-sm font-medium transition lift",
+              copied
+                ? "border-emerald-400/40 bg-emerald-500/15 text-emerald-200"
+                : "border-white/15 bg-white/[0.04] text-[var(--muted-strong)] hover:border-white/30 hover:text-white",
+            )}
+          >
+            {copied ? `${t.aiPrompt.copied} ✓` : t.aiPrompt.copy}
+          </button>
+        </div>
+      ) : null}
+      <pre className="mt-4 max-h-[30rem] overflow-auto whitespace-pre-wrap break-words rounded-xl border border-white/10 bg-black/30 p-4 font-mono text-xs leading-6 text-[var(--muted-strong)]">
+        {prompt}
+      </pre>
+    </div>
+  );
+}
+
 function AiList({ title, items }: { title: string; items: string[] }) {
   return (
     <div className="mt-4">
@@ -117,11 +163,17 @@ export function ReportView({ report, t, isRunning = false, fallbackUrl, actions,
   const tier = typeof overall === "number" ? celestialTier(overall) : null;
   const bands = scoreBand(report);
 
+  const improvementPrompt = useMemo(
+    () => (report?.status === "completed" ? buildImprovementPrompt(report, t) : ""),
+    [report, t],
+  );
+
   const detailTabs: TabItem[] = [
     { id: "overview", label: t.tabs.overview },
     { id: "issues", label: t.tabs.issues, count: report?.issues.length },
     { id: "screenshots", label: t.tabs.screenshots },
     { id: "metrics", label: t.tabs.metrics, count: report?.metrics.length },
+    { id: "aiPrompt", label: t.tabs.aiPrompt },
   ];
 
   const issuesToShow = printMode ? report?.issues ?? [] : filteredIssues;
@@ -250,6 +302,14 @@ export function ReportView({ report, t, isRunning = false, fallbackUrl, actions,
     </p>
   );
 
+  const aiPromptContent = improvementPrompt ? (
+    <AiPromptPanel prompt={improvementPrompt} t={t} printMode={printMode ?? false} />
+  ) : (
+    <p className="rounded-xl border border-white/10 bg-white/[0.03] p-4 text-sm text-[var(--muted)]">
+      {t.aiPrompt.empty}
+    </p>
+  );
+
   return (
     <section className="space-y-5">
       <h2 className="sr-only">{t.resultsHeading}</h2>
@@ -360,6 +420,9 @@ export function ReportView({ report, t, isRunning = false, fallbackUrl, actions,
             </section>
             <section role="tabpanel" id="detail-panel-metrics" aria-labelledby="detail-tab-metrics" hidden={activeTab !== "metrics"} tabIndex={0}>
               {metricsContent}
+            </section>
+            <section role="tabpanel" id="detail-panel-aiPrompt" aria-labelledby="detail-tab-aiPrompt" hidden={activeTab !== "aiPrompt"} tabIndex={0}>
+              {aiPromptContent}
             </section>
           </div>
         </GlassCard>
