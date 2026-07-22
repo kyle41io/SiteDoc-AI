@@ -13,7 +13,14 @@ COPY package.json package-lock.json ./
 RUN npm ci
 
 COPY . .
-RUN npm run build
+
+# Cache-bust the build layer per commit. Render injects RENDER_GIT_COMMIT as a
+# build arg on every deploy; because its value changes each commit, Docker can
+# no longer reuse a cached `npm run build` layer from an earlier deploy. Without
+# this, Render served a stale compiled app after a source change even though the
+# new commit was "Live" (report pages 500'd on already-fixed code).
+ARG RENDER_GIT_COMMIT=dev
+RUN echo "Building SiteDoc AI @ ${RENDER_GIT_COMMIT}" && npm run build
 
 # ---- Runtime stage --------------------------------------------------------
 FROM mcr.microsoft.com/playwright:v1.60.0-jammy AS runner
