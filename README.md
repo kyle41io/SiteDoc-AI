@@ -11,7 +11,7 @@ pinned: false
 
 # SiteDoc AI
 
-SiteDoc AI is an AI-assisted website QA dashboard for generating developer-ready audit reports across accessibility, performance, SEO, and UX quality. It features an "Aurora Glass" UI with a score-driven 3D celestial hero (the better the score, the grander the body — Moon → … → Galaxy) and is available in 5 languages.
+SiteDoc AI is an AI-assisted website QA dashboard for generating developer-ready audit reports across accessibility, performance, SEO, and UX quality. It features a "Pop Sheet" cartoon-poster UI — cream paper, inked outlines, hard offset shadows, sunburst hero — with light and dark themes, and a score-driven celestial grade (the better the score, the grander the body — Moon → … → Galaxy). Available in 5 languages.
 
 The current version includes a real Playwright scanner: submit a public URL, launch Chromium, capture desktop and mobile screenshots, collect console errors and failed network requests, save local audit artifacts, and review the generated report in the dashboard.
 
@@ -21,7 +21,6 @@ The current version includes a real Playwright scanner: submit a public URL, lau
 - React 19
 - TypeScript
 - Tailwind CSS v4
-- three.js / react-three-fiber (3D hero)
 - ESLint
 - Playwright
 - Vitest + Testing Library
@@ -112,17 +111,22 @@ database-backed implementation can be swapped in later without touching callers.
 
 ## Credits
 
-Planet/Sun surface textures (`public/textures/planets/`) are by James Hastings-Trew
-(Planet Pixel Emporium, free for any use), obtained via the MIT-licensed
-`threex.planets` project. See `public/textures/planets/CREDITS.md`.
+The celestial grade artwork (`public/textures/planets/`) was supplied by the project
+maintainer; the per-tier cutouts in `sprites/` are derived from it. See
+[`public/textures/planets/sprites/SOURCE.md`](public/textures/planets/sprites/SOURCE.md)
+for how they are produced — **the origin and licence of the two source images are not
+recorded and need confirming before public release.**
 
 ## Roadmap
 
-The full phased roadmap and design (Aurora Glass 3D UI, accessibility/SEO/performance
-engines, AI remediation, shareable reports, deployment) lives in
+The full phased roadmap and the original design direction (accessibility/SEO/performance
+engines, AI remediation, shareable reports, deployment) live in
 [`docs/superpowers/specs/2026-06-11-sitedoc-ai-roadmap-design.md`](docs/superpowers/specs/2026-06-11-sitedoc-ai-roadmap-design.md).
+That spec's UI section is historical: the "Aurora Glass" glassmorphism system and the
+WebGL celestial hero it describes were replaced by the Pop Sheet design and flat sticker
+artwork.
 
-Shipped: Aurora Glass design system + 3D celestial hero · **axe-core accessibility engine** · **deterministic SEO + performance checks** (categorized, scored, localized) · **AI remediation layer** (Claude or OpenAI + deterministic fallback, localized) · **shareable `/report/{id}` pages + one-click PDF export** · **async job model + durable SQLite store + containerized deploy + CI/E2E** · 5-language i18n.
+Shipped: Pop Sheet design system (light + dark) + celestial score grade · **axe-core accessibility engine** · **deterministic SEO + performance checks** (categorized, scored, localized) · **AI remediation layer** (Claude or OpenAI + deterministic fallback, localized) · **shareable `/report/{id}` pages + one-click PDF export** · **async job model + durable SQLite store + containerized deploy + CI/E2E** · 5-language i18n.
 
 Upcoming:
 

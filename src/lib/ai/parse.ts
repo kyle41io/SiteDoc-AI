@@ -1,7 +1,7 @@
 import type { AuditAiReport } from "@/lib/audit-types";
 
 /** Keep only non-empty string entries from an unknown array-ish value. */
-export function asStringArray(value: unknown): string[] {
+function asStringArray(value: unknown): string[] {
   if (!Array.isArray(value)) return [];
   return value.filter(
     (item): item is string => typeof item === "string" && item.trim() !== "",

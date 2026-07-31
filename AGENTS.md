@@ -10,7 +10,7 @@ Treat this as one continuous project goal, not a day-by-day task list. Keep prog
 
 The full original project brief is stored in `docs/PROJECT_BRIEF.md`. Read it when planning product scope, CV positioning, implementation priorities, or demo expectations.
 
-The current phased roadmap and approved design (Aurora Glass 3D UI direction, build sequencing, technical decisions) is in `docs/superpowers/specs/2026-06-11-sitedoc-ai-roadmap-design.md`. Read it before starting a new phase.
+The current phased roadmap (build sequencing, technical decisions) is in `docs/superpowers/specs/2026-06-11-sitedoc-ai-roadmap-design.md`. Read it before starting a new phase. Its UI section is historical: the "Aurora Glass" glassmorphism direction and the WebGL celestial hero were replaced by the "Pop Sheet" cartoon-poster design system (light + dark themes) with flat sticker artwork for the score grade.
 
 ## Product Direction
 

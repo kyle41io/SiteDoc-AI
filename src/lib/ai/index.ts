@@ -21,11 +21,6 @@ function selectLiveProvider(): AiProvider | null {
   return null;
 }
 
-/** Whether any live AI provider is configured. */
-export function isAiConfigured(): boolean {
-  return selectLiveProvider() !== null;
-}
-
 /**
  * Produce a remediation report for a completed audit. This is the only entry
  * callers should use. It is non-blocking and never throws: if no live AI
