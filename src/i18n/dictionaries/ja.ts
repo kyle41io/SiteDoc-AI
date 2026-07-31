@@ -39,6 +39,15 @@ export const ja: Dictionary = {
   exportPdfTitle: "PDF 書き出しはレポート永続化とともに提供されます。",
   resultsHeading: "監査結果",
   language: "言語",
+  theme: { label: "テーマ", light: "ライトモード", dark: "ダークモード" },
+  ticker: [
+    "実ブラウザでスキャン",
+    "Axe-core アクセシビリティ",
+    "Core Web Vitals",
+    "SEO チェック",
+    "共有できる PDF",
+    "AI 修正プロンプト",
+  ],
   tabs: {
     overview: "概要",
     issues: "問題",
@@ -104,6 +113,10 @@ export const ja: Dictionary = {
     openReport: "レポートを開く",
     notFoundTitle: "レポートが見つかりません",
     notFoundBody: "この監査レポートは存在しないか、利用できなくなりました。",
+  },
+  pageNotFound: {
+    title: "ページが見つかりません",
+    body: "このページは存在しません。トップに戻って新しい監査を開始してください。",
   },
   aiPrompt: {
     intro:

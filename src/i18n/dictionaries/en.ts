@@ -39,6 +39,16 @@ export const en = {
   exportPdfTitle: "PDF export arrives with report persistence.",
   resultsHeading: "Audit results",
   language: "Language",
+  theme: { label: "Theme", light: "Light mode", dark: "Dark mode" },
+  /** Marquee strip under the hero — short capability call-outs. */
+  ticker: [
+    "Real browser scans",
+    "Axe-core accessibility",
+    "Core Web Vitals",
+    "SEO checks",
+    "Shareable PDF",
+    "AI fix prompt",
+  ],
   tabs: {
     overview: "Overview",
     issues: "Issues",
@@ -104,6 +114,10 @@ export const en = {
     openReport: "Open report",
     notFoundTitle: "Report not found",
     notFoundBody: "This audit report does not exist or is no longer available.",
+  },
+  pageNotFound: {
+    title: "Page not found",
+    body: "That page does not exist. Head back to start a new audit.",
   },
   aiPrompt: {
     intro:

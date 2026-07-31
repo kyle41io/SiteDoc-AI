@@ -39,6 +39,15 @@ export const vi: Dictionary = {
   exportPdfTitle: "Xuất PDF sẽ có khi báo cáo được lưu trữ.",
   resultsHeading: "Kết quả phân tích",
   language: "Ngôn ngữ",
+  theme: { label: "Giao diện", light: "Chế độ sáng", dark: "Chế độ tối" },
+  ticker: [
+    "Quét bằng trình duyệt thật",
+    "Khả năng tiếp cận Axe-core",
+    "Core Web Vitals",
+    "Kiểm tra SEO",
+    "PDF chia sẻ được",
+    "Prompt sửa lỗi AI",
+  ],
   tabs: {
     overview: "Tổng quan",
     issues: "Vấn đề",
@@ -104,6 +113,10 @@ export const vi: Dictionary = {
     openReport: "Mở báo cáo",
     notFoundTitle: "Không tìm thấy báo cáo",
     notFoundBody: "Báo cáo kiểm tra này không tồn tại hoặc không còn khả dụng.",
+  },
+  pageNotFound: {
+    title: "Không tìm thấy trang",
+    body: "Trang này không tồn tại. Hãy quay lại để bắt đầu một lượt kiểm tra mới.",
   },
   aiPrompt: {
     intro:

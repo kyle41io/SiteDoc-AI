@@ -51,7 +51,7 @@ export function Tabs({ tabs, active, onChange, idPrefix, label }: TabsProps) {
   }
 
   return (
-    <div role="tablist" aria-label={label} className="flex flex-wrap gap-1.5">
+    <div role="tablist" aria-label={label} className="flex flex-wrap gap-2.5">
       {tabs.map((tab, index) => {
         const selected = tab.id === active;
         return (
@@ -69,18 +69,20 @@ export function Tabs({ tabs, active, onChange, idPrefix, label }: TabsProps) {
             onClick={() => onChange(tab.id)}
             onKeyDown={(event) => handleKeyDown(event, index)}
             className={cn(
-              "inline-flex items-center gap-2 rounded-xl px-3.5 py-2 text-sm font-medium transition",
+              "btn-pop inline-flex items-center gap-2 rounded-full px-4 py-1.5 font-display text-sm uppercase tracking-wide",
+              // The selected tab reads as "pressed in": travelled forward with
+              // its shadow collapsed, so state survives without relying on hue.
               selected
-                ? "bg-[var(--accent-strong)] text-white shadow-[0_8px_24px_rgba(111,141,255,0.35)]"
-                : "glass text-[var(--muted-strong)] hover:text-white",
+                ? "translate-x-[3px] translate-y-[3px] bg-lemon text-on-bright shadow-none"
+                : "bg-paper-2 text-ink",
             )}
           >
             {tab.label}
             {typeof tab.count === "number" && (
               <span
                 className={cn(
-                  "rounded-full px-1.5 py-0.5 text-[10px] font-semibold tabular-nums",
-                  selected ? "bg-white/25 text-white" : "bg-white/10 text-[var(--muted)]",
+                  "rounded-full border-2 border-line px-1.5 text-[10px] leading-4 tabular-nums",
+                  selected ? "bg-paper-2 text-ink" : "bg-lemon text-on-bright",
                 )}
               >
                 {tab.count}

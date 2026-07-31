@@ -5,6 +5,7 @@ import { isAuditId } from "@/lib/audit/id";
 import { DEFAULT_LOCALE, isLocale } from "@/i18n/config";
 import { dictionaries } from "@/i18n/dictionaries";
 import { ReportView } from "@/components/report/ReportView";
+import { Sticker, WaveEdge } from "@/components/ui/decor";
 
 // Reports are read from the store per request — never statically cached.
 export const dynamic = "force-dynamic";
@@ -35,39 +36,51 @@ export default async function ReportPage({ params, searchParams }: ReportPagePro
     : null;
 
   return (
-    <main className="mx-auto w-full max-w-5xl px-5 pb-16">
-      <header className="flex flex-col gap-3 py-7 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <p className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.22em] text-[var(--accent)]">
-            <span className="h-1.5 w-1.5 rounded-full bg-[var(--accent)]" aria-hidden />
-            {t.brand} · {t.report.sharedNote}
-          </p>
-          <h1 className="mt-2 break-all text-2xl font-semibold tracking-tight text-white md:text-3xl">
-            {record.finalUrl ?? record.url}
-          </h1>
-          {generatedOn ? (
-            <p className="mt-1 text-sm text-[var(--muted)]">
-              {t.report.generatedOn} {generatedOn}
-            </p>
-          ) : null}
-        </div>
-
-        {!printMode ? (
-          <div className="flex flex-wrap gap-2">
-            <a
-              className="rounded-xl border border-white/15 px-3 py-2 text-sm font-medium text-[var(--muted-strong)] transition hover:border-white/30 hover:text-white"
-              href={`/report/${record.id}/pdf`}
+    <main className="mx-auto w-full max-w-5xl px-4 pb-20 sm:px-6">
+      <header className="py-7">
+        <div className="pop-lg overflow-hidden rounded-[2rem]">
+          <div className="sunburst relative px-5 pt-8 pb-12 text-center sm:px-9">
+            <Sticker className="mb-5 bg-paper-2 px-5 py-2" tilt={-2}>
+              <span className="eyebrow text-xs text-ink">
+                {t.brand} · {t.report.sharedNote}
+              </span>
+            </Sticker>
+            <h1
+              className="headline headline-pop mx-auto max-w-3xl break-all text-[clamp(1.5rem,4.6vw,2.9rem)]"
+              style={{ ["--stroke-w" as string]: "0.045em" }}
             >
-              {t.report.downloadPdf}
-            </a>
-            <Link
-              className="rounded-xl border border-white/15 px-3 py-2 text-sm font-medium text-[var(--muted-strong)] transition hover:border-white/30 hover:text-white"
-              href="/"
-            >
-              {t.report.backToApp}
-            </Link>
+              {record.finalUrl ?? record.url}
+            </h1>
+            <WaveEdge className="absolute inset-x-0 bottom-0" fill="var(--paper-2)" />
           </div>
-        ) : null}
+
+          <div className="flex flex-col items-center justify-between gap-3 bg-paper-2 px-5 pb-6 sm:flex-row sm:px-9">
+            {generatedOn ? (
+              <p className="eyebrow text-[0.7rem] text-ink-soft">
+                {t.report.generatedOn} {generatedOn}
+              </p>
+            ) : (
+              <span />
+            )}
+
+            {!printMode ? (
+              <div className="no-print flex flex-wrap justify-center gap-2.5">
+                <a
+                  className="btn-pop inline-flex items-center rounded-full bg-lemon px-4 py-2 font-display text-sm uppercase tracking-wide text-on-bright"
+                  href={`/report/${record.id}/pdf`}
+                >
+                  {t.report.downloadPdf}
+                </a>
+                <Link
+                  className="btn-pop inline-flex items-center rounded-full bg-panel px-4 py-2 font-display text-sm uppercase tracking-wide text-ink"
+                  href="/"
+                >
+                  {t.report.backToApp}
+                </Link>
+              </div>
+            ) : null}
+          </div>
+        </div>
       </header>
 
       <ReportView report={record} t={t} printMode={printMode} />

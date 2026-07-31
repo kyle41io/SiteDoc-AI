@@ -10,35 +10,35 @@ type ScoreCardProps = {
 };
 
 /**
- * A glass score tile: label, 0-100 value (or "--" when not yet measured), and
- * a thin progress bar colored by the category accent.
+ * A score tile: category label, 0-100 value (or "--" when not yet measured),
+ * and a chunky outlined capsule filled to the score in the category accent.
  */
-export function ScoreCard({ label, value, accent = "var(--accent)", emphasis }: ScoreCardProps) {
+export function ScoreCard({ label, value, accent = "var(--sky)", emphasis }: ScoreCardProps) {
   const hasValue = typeof value === "number";
   const width = hasValue ? Math.max(0, Math.min(100, value)) : 0;
 
   return (
-    <div className="glass overflow-hidden rounded-2xl">
-      <div className="px-4 pt-3 pb-3.5">
-        <p className="min-h-[2.1em] text-[10px] font-semibold uppercase leading-tight tracking-[0.08em] text-[var(--muted)] [overflow-wrap:anywhere]">
-          {label}
-        </p>
-        <p
-          className={cn(
-            "mt-1 font-semibold tabular-nums",
-            emphasis ? "text-4xl" : "text-2xl",
-          )}
-          style={{ color: hasValue ? "var(--foreground)" : "var(--muted)" }}
-        >
-          {hasValue ? width : "--"}
-          {hasValue && (
-            <span className="ml-0.5 text-sm font-normal text-[var(--muted)]">/100</span>
-          )}
-        </p>
-      </div>
-      <div className="h-1.5 w-full bg-white/10" role="presentation">
+    <div className="pop-sm rounded-2xl bg-paper-2 px-3.5 py-3">
+      <p className="eyebrow min-h-[2.2em] text-[0.62rem] leading-tight text-ink-soft [overflow-wrap:anywhere]">
+        {label}
+      </p>
+      <p
+        className={cn(
+          "font-display leading-none tabular-nums",
+          emphasis ? "text-[2.6rem]" : "text-[1.9rem]",
+          hasValue ? "text-ink" : "text-ink-soft",
+        )}
+      >
+        {hasValue ? width : "--"}
+        {hasValue && <span className="ml-0.5 text-sm text-ink-soft">/100</span>}
+      </p>
+      <div
+        className="mt-2 h-3 overflow-hidden rounded-full border-2 border-line"
+        style={{ backgroundColor: "color-mix(in srgb, var(--ink) 12%, transparent)" }}
+        role="presentation"
+      >
         <div
-          className="h-full rounded-r-full transition-[width] duration-700 ease-out"
+          className="h-full transition-[width] duration-700 ease-out"
           style={{ width: `${width}%`, backgroundColor: accent }}
         />
       </div>

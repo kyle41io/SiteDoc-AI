@@ -5,6 +5,14 @@ import {
   SEVERITY_COLOR,
 } from "@/lib/audit/category-meta";
 
+/**
+ * Badges are solid chips of their category/severity color with an inked
+ * outline. The label always uses `--on-bright` (a fixed deep indigo that does
+ * not follow the theme), so a chip keeps AA contrast on both sheets.
+ */
+const CHIP =
+  "inline-flex items-center gap-1.5 rounded-full border-2 border-line px-2.5 py-0.5 font-display text-[0.7rem] uppercase leading-5 tracking-wide text-on-bright";
+
 export function SeverityBadge({
   severity,
   label,
@@ -14,10 +22,7 @@ export function SeverityBadge({
 }) {
   const color = SEVERITY_COLOR[severity];
   return (
-    <span
-      className="inline-flex items-center rounded-md px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide"
-      style={{ color, backgroundColor: `color-mix(in srgb, ${color} 18%, transparent)` }}
-    >
+    <span className={CHIP} style={{ backgroundColor: color }}>
       {label ?? severity}
     </span>
   );
@@ -32,18 +37,13 @@ export function CategoryBadge({
 }) {
   const color = CATEGORY_ACCENT[category];
   return (
-    <span
-      className="inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-[11px] font-semibold"
-      style={{
-        color,
-        borderColor: `color-mix(in srgb, ${color} 35%, transparent)`,
-        backgroundColor: `color-mix(in srgb, ${color} 12%, transparent)`,
-      }}
-    >
+    <span className={CHIP} style={{ backgroundColor: color }}>
+      {/* Ink dot, not a paper dot: the chip fill stays bright in both themes,
+          so a surface token here would invert while the chip did not. */}
       <span
         aria-hidden
-        className="h-1.5 w-1.5 rounded-full"
-        style={{ backgroundColor: color }}
+        className="h-2 w-2 rounded-full"
+        style={{ backgroundColor: "var(--on-bright)" }}
       />
       {label ?? CATEGORY_LABEL[category]}
     </span>

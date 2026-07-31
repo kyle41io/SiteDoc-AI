@@ -1,12 +1,17 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useId, useState } from "react";
 import type { AuditRecord } from "@/lib/audit-types";
 import { cn } from "@/lib/cn";
 import { useI18n } from "@/i18n/provider";
-import { GlassCard } from "@/components/ui/GlassCard";
+import { PopCard } from "@/components/ui/PopCard";
+import { Sticker, Ticker, WaveEdge } from "@/components/ui/decor";
 import { LanguageSwitcher } from "@/components/ui/LanguageSwitcher";
+import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { ReportView } from "@/components/report/ReportView";
+
+/** Rotating chip fills, so the module list reads as a sticker sheet. */
+const CHIP_TONES = ["bg-mint", "bg-lemon", "bg-bubblegum", "bg-aqua", "bg-grape"];
 
 type PageStatus = "idle" | "running" | "completed" | "failed";
 
@@ -106,6 +111,7 @@ async function postAudit(body: { url: string; language: string }, attempts = 3) 
 
 export default function Home() {
   const { t, locale } = useI18n();
+  const urlFieldId = useId();
   const [url, setUrl] = useState("https://example.com");
   const [status, setStatus] = useState<PageStatus>("idle");
   const [activeStep, setActiveStep] = useState(0);
@@ -163,10 +169,15 @@ export default function Home() {
     window.setTimeout(() => setCopied(false), 1600);
   }
 
+  // No colour utility here: `cn` is a plain joiner, so each variant below must
+  // emit exactly one fill and exactly one text colour or they fight in the cascade.
+  const actionClass =
+    "btn-pop inline-flex items-center rounded-full px-4 py-2 font-display text-sm uppercase tracking-wide";
+
   const reportActions = (
     <>
       <button
-        className="rounded-xl border border-white/15 px-3 py-2 text-sm font-medium text-[var(--muted-strong)] transition hover:border-white/30 hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
+        className={cn(actionClass, copied ? "bg-mint text-on-bright" : "bg-paper-2 text-ink")}
         disabled={!auditReport}
         onClick={copyReportLink}
         type="button"
@@ -175,7 +186,7 @@ export default function Home() {
       </button>
       {auditReport ? (
         <a
-          className="rounded-xl border border-white/15 px-3 py-2 text-sm font-medium text-[var(--muted-strong)] transition hover:border-white/30 hover:text-white"
+          className={cn(actionClass, "bg-lemon text-on-bright")}
           href={`/report/${auditReport.id}`}
           rel="noreferrer"
           target="_blank"
@@ -183,11 +194,7 @@ export default function Home() {
           {t.report.openReport}
         </a>
       ) : (
-        <button
-          className="rounded-xl border border-white/10 px-3 py-2 text-sm font-medium text-[var(--muted)] disabled:cursor-not-allowed"
-          disabled
-          type="button"
-        >
+        <button className={cn(actionClass, "bg-paper-2 text-ink")} disabled type="button">
           {t.report.openReport}
         </button>
       )}
@@ -195,122 +202,162 @@ export default function Home() {
   );
 
   return (
-    <main className="mx-auto w-full max-w-7xl px-5 pb-16">
-      {/* Header */}
-      <header className="flex flex-col gap-4 py-7 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <p className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.22em] text-[var(--accent)]">
-            <span className="h-1.5 w-1.5 rounded-full bg-[var(--accent)]" aria-hidden />
-            {t.brand}
-          </p>
-          <h1 className="mt-2 text-3xl font-semibold tracking-tight text-white md:text-4xl">
-            {t.title}
-          </h1>
-          <p className="mt-2 max-w-xl text-sm text-[var(--muted)]">{t.subtitle}</p>
-        </div>
-        <LanguageSwitcher />
-      </header>
+    <main className="pb-20">
+      {/* Masthead */}
+      <div className="mx-auto w-full max-w-6xl px-4 sm:px-6">
+        <header className="flex flex-wrap items-center justify-between gap-4 py-6">
+          <div className="flex items-center gap-3">
+            <Sticker className="h-12 w-12 bg-lemon" tilt={-10}>
+              <span className="font-display text-lg leading-none text-on-bright">SD</span>
+            </Sticker>
+            <p className="font-display text-2xl uppercase leading-none tracking-tight text-ink">
+              {t.brand}
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            <LanguageSwitcher />
+            <ThemeToggle />
+          </div>
+        </header>
+      </div>
 
-      <div className="grid gap-5 lg:grid-cols-[360px_1fr]">
-        {/* Audit form rail */}
-        <aside className="h-fit">
-          <GlassCard strong className="p-5">
-            <div className="flex items-center justify-between border-b border-white/10 pb-4">
-              <div>
-                <h2 className="text-lg font-semibold text-white">{t.newAudit}</h2>
-                <p className="text-sm text-[var(--muted)]">{t.newAuditHint}</p>
-              </div>
-            </div>
+      {/* Hero: sunburst sky over a cream apron holding the scan form */}
+      <div className="mx-auto w-full max-w-6xl px-4 sm:px-6">
+        <section className="pop-lg overflow-hidden rounded-[2rem]">
+          <div className="sunburst relative px-5 pt-10 pb-14 text-center sm:px-10 sm:pt-14">
+            <Sticker className="mb-6 bg-paper-2 px-5 py-2" tilt={-2}>
+              <span className="eyebrow text-xs text-ink sm:text-sm">
+                {t.newAudit} · {t.newAuditHint}
+              </span>
+            </Sticker>
+            <h1
+              className="headline headline-pop mx-auto max-w-4xl text-[clamp(2.1rem,7.4vw,4.6rem)]"
+              style={{ ["--stroke-w" as string]: "0.05em" }}
+            >
+              {t.title}
+            </h1>
+            <WaveEdge className="absolute inset-x-0 bottom-0" fill="var(--paper-2)" />
+          </div>
+
+          <div className="bg-paper-2 px-5 pb-8 sm:px-10">
+            <p className="mx-auto max-w-3xl text-center text-base leading-7 text-ink-soft">
+              {t.subtitle}
+            </p>
 
             <form
-              className="mt-4 space-y-5"
+              className="mx-auto mt-6 max-w-3xl"
               onSubmit={(event: FormEvent<HTMLFormElement>) => {
                 event.preventDefault();
                 void runAudit();
               }}
             >
-              <label className="block">
-                <span className="text-sm font-medium text-[var(--muted-strong)]">
-                  {t.urlLabel}
-                </span>
+              <label className="eyebrow block text-[0.7rem] text-ink-soft" htmlFor={urlFieldId}>
+                {t.urlLabel}
+              </label>
+              <div className="mt-2 flex flex-col gap-3 sm:flex-row">
                 <input
-                  className="mt-2 h-11 w-full rounded-xl border border-white/15 bg-black/20 px-3 text-sm text-white outline-none transition placeholder:text-white/30 focus:border-[var(--accent)]"
+                  className="field-pop h-14 w-full rounded-full px-5 font-mono text-sm sm:flex-1"
+                  id={urlFieldId}
                   onChange={(event) => setUrl(event.target.value)}
                   placeholder={t.urlPlaceholder}
                   type="url"
                   value={url}
                 />
-              </label>
-
-              <fieldset className="space-y-2">
-                <legend className="text-sm font-medium text-[var(--muted-strong)]">
-                  {t.modulesTitle}{" "}
-                  <span className="font-normal text-[var(--muted)]">· {t.modulesHint}</span>
-                </legend>
-                {t.modules.map((label) => (
-                  <div
-                    className="flex items-center justify-between rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-[var(--muted-strong)]"
-                    key={label}
-                  >
-                    <span>{label}</span>
-                    <span className="inline-flex items-center gap-1 rounded-md bg-emerald-500/15 px-1.5 py-0.5 text-[11px] font-semibold text-emerald-300">
-                      <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-                      On
-                    </span>
-                  </div>
-                ))}
-              </fieldset>
+                <button
+                  className="btn-pop h-14 shrink-0 rounded-full bg-lemon px-8 font-display text-lg uppercase tracking-wide text-on-bright"
+                  disabled={isRunning}
+                  type="submit"
+                >
+                  {isRunning ? t.running : t.run}
+                </button>
+              </div>
 
               {formError ? (
                 <p
-                  className="rounded-lg border border-rose-400/30 bg-rose-500/10 px-3 py-2 text-sm text-rose-200"
+                  className="pop-sm mt-4 rounded-2xl bg-coral px-4 py-3 text-sm font-bold text-on-bright"
                   role="alert"
                 >
                   {formError}
                 </p>
               ) : null}
 
-              <button
-                className="h-11 w-full rounded-xl bg-[var(--accent-strong)] px-4 text-sm font-semibold text-white shadow-[0_10px_30px_rgba(111,141,255,0.35)] transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
-                disabled={isRunning}
-                type="submit"
-              >
-                {isRunning ? t.running : t.run}
-              </button>
-            </form>
-
-            <div className="mt-5 rounded-xl border border-white/10 bg-white/[0.03] p-3">
-              <p className="text-sm font-semibold text-white">{t.pipeline}</p>
-              <ol className="mt-3 space-y-2">
-                {t.steps.map((step, index) => {
-                  const done =
-                    status === "completed" ||
-                    status === "failed" ||
-                    (isRunning && index <= activeStep);
-                  const current = isRunning && index === activeStep;
-                  return (
-                    <li className="flex items-center gap-2.5 text-sm" key={step}>
-                      <span
-                        className={cn(
-                          "h-2.5 w-2.5 shrink-0 rounded-full transition",
-                          done ? "bg-[var(--accent-2)]" : "bg-white/15",
-                          current && "ring-2 ring-[var(--accent-2)]/40",
-                        )}
-                        aria-hidden
-                      />
-                      <span className={done ? "text-[var(--muted-strong)]" : "text-[var(--muted)]"}>
-                        {step}
-                      </span>
+              <fieldset className="mt-5">
+                <legend className="eyebrow text-[0.7rem] text-ink-soft">
+                  {t.modulesTitle} · {t.modulesHint}
+                </legend>
+                <ul className="mt-2.5 flex flex-wrap justify-center gap-2 sm:justify-start">
+                  {t.modules.map((label, index) => (
+                    <li
+                      className={cn(
+                        "pop-sm inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-sm font-bold text-on-bright",
+                        CHIP_TONES[index % CHIP_TONES.length],
+                      )}
+                      key={label}
+                    >
+                      <span aria-hidden>✓</span>
+                      {label}
                     </li>
-                  );
-                })}
-              </ol>
-            </div>
-          </GlassCard>
-        </aside>
+                  ))}
+                </ul>
+              </fieldset>
+            </form>
+          </div>
+        </section>
+      </div>
 
-        {/* Report column */}
-        <ReportView report={auditReport} t={t} isRunning={isRunning} fallbackUrl={url} actions={reportActions} />
+      {/* Full-bleed marquee */}
+      <Ticker className="mt-10 bg-ink text-paper" items={t.ticker} />
+      <Ticker
+        className="bg-lemon text-on-bright"
+        durationSeconds={44}
+        items={t.ticker}
+        reverse
+      />
+
+      <div className="mx-auto mt-10 w-full max-w-6xl space-y-6 px-4 sm:px-6">
+        {/* Scanner pipeline stepper */}
+        <PopCard className="p-5" tone="panel">
+          <h2 className="eyebrow text-[0.72rem] text-ink-soft">{t.pipeline}</h2>
+          <ol className="mt-3 grid gap-2.5 sm:grid-cols-2 lg:grid-cols-5">
+            {t.steps.map((step, index) => {
+              const done =
+                status === "completed" ||
+                status === "failed" ||
+                (isRunning && index <= activeStep);
+              const current = isRunning && index === activeStep;
+              return (
+                <li
+                  className={cn(
+                    "pop-sm flex items-start gap-2.5 rounded-2xl px-3 py-2.5 transition-colors",
+                    current
+                      ? "bg-lemon text-on-bright"
+                      : done
+                        ? "bg-mint text-on-bright"
+                        : "bg-paper-2 text-ink-soft",
+                  )}
+                  key={step}
+                >
+                  <span
+                    aria-hidden
+                    className="mt-0.5 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 border-line bg-paper-2 font-display text-xs text-ink"
+                  >
+                    {done && !current ? "✓" : index + 1}
+                  </span>
+                  <span className="text-sm font-bold leading-5">{step}</span>
+                </li>
+              );
+            })}
+          </ol>
+        </PopCard>
+
+        {/* Report */}
+        <ReportView
+          report={auditReport}
+          t={t}
+          isRunning={isRunning}
+          fallbackUrl={url}
+          actions={reportActions}
+        />
       </div>
     </main>
   );

@@ -34,6 +34,15 @@ export const zh: Dictionary = {
   exportPdfTitle: "PDF 导出将随报告持久化一起推出。",
   resultsHeading: "审计结果",
   language: "语言",
+  theme: { label: "主题", light: "浅色模式", dark: "深色模式" },
+  ticker: [
+    "真实浏览器扫描",
+    "Axe-core 无障碍检测",
+    "核心网页指标",
+    "SEO 检查",
+    "可分享 PDF",
+    "AI 修复提示词",
+  ],
   tabs: {
     overview: "概览",
     issues: "问题",
@@ -96,6 +105,10 @@ export const zh: Dictionary = {
     openReport: "打开报告",
     notFoundTitle: "未找到报告",
     notFoundBody: "该审计报告不存在或已不可用。",
+  },
+  pageNotFound: {
+    title: "页面未找到",
+    body: "该页面不存在。返回首页即可开始新的审计。",
   },
   aiPrompt: {
     intro:

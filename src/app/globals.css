@@ -1,180 +1,465 @@
 @import "tailwindcss";
 
 /* ============================================================
-   SiteDoc AI — "Aurora Glass" design system
-   Dark, premium surface with a layered aurora gradient backdrop,
-   frosted-glass panels, and motion that respects user preferences.
+   SiteDoc AI — "Pop Sheet" design system
+   Cartoon-poster neo-brutalism: cream paper, deep-ink outlines,
+   hard offset shadows, sunburst skies and chunky extruded type.
+
+   Theme model
+   -----------
+   `data-theme` is stamped on <html> by an inline script before first
+   paint (see app/layout.tsx), so only the dark override is declared
+   here — there is no `prefers-color-scheme` duplicate to keep in sync.
    ============================================================ */
 
 :root {
-  color-scheme: dark;
+  color-scheme: light;
 
-  --background: #070912;
-  --background-soft: #0c1024;
-  --foreground: #e9ecf5;
-  --muted: #9aa3bd;
-  --muted-strong: #c3cae0;
+  /* Paper + ink -------------------------------------------------- */
+  --paper: #fdeed6;
+  --paper-2: #fff9ee;
+  --panel: #ffffff;
+  --ink: #171436;
+  --ink-soft: #5b5589;
+  --line: #171436;
+  --shadow-col: #171436;
 
-  /* Frosted glass surfaces */
-  --glass-bg: rgba(255, 255, 255, 0.055);
-  --glass-bg-strong: rgba(255, 255, 255, 0.09);
-  --glass-border: rgba(255, 255, 255, 0.12);
-  --glass-border-strong: rgba(255, 255, 255, 0.22);
-  /* Near-opaque base for floating menus/popovers, so their contents stay
-     legible over arbitrary page content instead of bleeding through. */
-  --menu-bg: rgba(16, 20, 38, 0.94);
+  /* Text that sits on a bright fill (badges, score chips, buttons).
+     Deliberately theme-independent: the fills stay bright in dark mode,
+     so this must not flip to cream or the chips lose all contrast. */
+  --on-bright: #171436;
 
-  /* Brand accents */
-  --accent: #6f8dff;
-  /* Darker accent for filled surfaces that carry white text — reaches AA
-     contrast (~5.4:1 with white), unlike the lighter --accent (~3:1). */
-  --accent-strong: #4c5fd0;
-  --accent-2: #21d4a8;
+  /* Pop palette -------------------------------------------------- */
+  --sky: #35a7e8;
+  --sky-deep: #0f6ea6;
+  --grape: #a98be8;
+  --tangerine: #f5883c;
+  --lemon: #ffc93c;
+  --mint: #2fd39b;
+  --coral: #ff6b6b;
+  --bubblegum: #ff9ecf;
+  --aqua: #5fe0d6;
+  --sand: #e3c58c;
 
-  /* Category accents */
-  --cat-accessibility: #34d399;
-  --cat-seo: #a78bfa;
-  --cat-performance: #fbbf24;
-  --cat-ux: #60a5fa;
-  --cat-bestpractices: #2dd4bf;
-  --cat-console: #fb7185;
-  --cat-network: #38bdf8;
-  --cat-scanner: #cbd5e1;
+  /* Hero sky ----------------------------------------------------- */
+  --hero-bg: #35a7e8;
+  --hero-ray: #56bcf2;
+  --hero-stroke: #14123a;
+  --hero-fill: #fff9ee;
+  /* A quiet mark drawn straight onto `--hero-bg`, with no stroke to lift it
+     off the sky. Unlike `--hero-stroke`/`--hero-fill` — which are used as a
+     pair and so can both stay dark/light — this one has to flip with the
+     theme, because the sky goes from bright blue to deep navy. */
+  --hero-muted: #14123a;
+
+  /* Semantic aliases (kept so utility strings read intent, not hue) */
+  --accent: var(--sky-deep);
+  --accent-2: #0e9e72;
+
+  /* Category accents — solid fills, always paired with --on-bright */
+  --cat-accessibility: #2fd39b;
+  --cat-seo: #a98be8;
+  --cat-performance: #ffc93c;
+  --cat-ux: #4fb3ee;
+  --cat-bestpractices: #5fe0d6;
+  --cat-console: #ff8a8a;
+  --cat-network: #ff9ecf;
+  --cat-scanner: #e3c58c;
 
   /* Severity */
-  --sev-high: #fb7185;
-  --sev-medium: #fbbf24;
-  --sev-low: #94a3b8;
+  --sev-high: #ff6b6b;
+  --sev-medium: #ffc93c;
+  --sev-low: #9bd5f5;
+
+  /* Hard-shadow depth steps */
+  --pop-1: 3px 3px 0 var(--shadow-col);
+  --pop-2: 5px 5px 0 var(--shadow-col);
+  --pop-3: 8px 8px 0 var(--shadow-col);
 }
 
+/* ---------- Dark theme ---------- */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --paper: #14113a;
+  --paper-2: #1d1950;
+  --panel: #241f60;
+  --ink: #fff4e2;
+  --ink-soft: #b3abe0;
+  /* Outlines flip to a light lilac; the hard shadow stays near-black so
+     depth still reads as "lit from the top-left". */
+  --line: #cec5f7;
+  --shadow-col: #05040f;
+
+  --sky: #4fb3ee;
+  --sky-deep: #8fd3ff;
+  --accent: var(--sky-deep);
+  --accent-2: #4fe3b0;
+
+  --hero-bg: #103f6a;
+  --hero-ray: #1e679f;
+  --hero-stroke: #05040f;
+  --hero-fill: #fff4e2;
+  --hero-muted: #fff4e2;
+}
+
+/* ---------- Tailwind token bridge ----------
+   `inline` so the utilities emit `var(--ink)` directly and therefore
+   follow the theme override above. */
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-muted: var(--muted);
-  --color-accent: var(--accent);
-  --color-accent-2: var(--accent-2);
-  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
-  --font-mono: ui-monospace, "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  --font-display: var(--font-baloo), "Baloo 2", "Hiragino Sans", "Yu Gothic UI",
+    "PingFang SC", "Microsoft YaHei", ui-rounded, sans-serif;
+  --font-sans: var(--font-nunito), "Hiragino Sans", "Yu Gothic UI", "PingFang SC",
+    "Microsoft YaHei", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-jbmono), ui-monospace, "SFMono-Regular", monospace;
+
+  --color-paper: var(--paper);
+  --color-paper-2: var(--paper-2);
+  --color-panel: var(--panel);
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-line: var(--line);
+  --color-on-bright: var(--on-bright);
+
+  --color-sky: var(--sky);
+  --color-sky-deep: var(--sky-deep);
+  --color-grape: var(--grape);
+  --color-tangerine: var(--tangerine);
+  --color-lemon: var(--lemon);
+  --color-mint: var(--mint);
+  --color-coral: var(--coral);
+  --color-bubblegum: var(--bubblegum);
+  --color-aqua: var(--aqua);
+  --color-sand: var(--sand);
 }
 
-html {
+html,
+body {
   min-height: 100%;
 }
 
 body {
-  min-height: 100%;
-  background: var(--background);
-  color: var(--foreground);
-  font-family: var(--font-inter), ui-sans-serif, system-ui, -apple-system,
-    BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background-color: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-weight: 500;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
 
-/* Aurora gradient-mesh backdrop, fixed behind all content. */
-.aurora-bg {
+/* Faint halftone dots so the cream never reads as flat printer paper. */
+.paper-texture {
   position: fixed;
   inset: 0;
   z-index: -1;
   pointer-events: none;
-  background:
-    radial-gradient(48% 58% at 14% 2%, rgba(111, 141, 255, 0.28), transparent 60%),
-    radial-gradient(42% 52% at 88% 8%, rgba(167, 139, 250, 0.24), transparent 60%),
-    radial-gradient(55% 62% at 50% 108%, rgba(33, 212, 168, 0.2), transparent 60%),
-    var(--background);
-  animation: aurora-drift 26s ease-in-out infinite alternate;
+  opacity: 0.5;
+  background-image: radial-gradient(
+    color-mix(in srgb, var(--ink) 16%, transparent) 1.1px,
+    transparent 1.2px
+  );
+  background-size: 18px 18px;
 }
 
-@keyframes aurora-drift {
-  0% {
-    background-position: 0% 0%, 100% 0%, 50% 100%, 0 0;
-    filter: hue-rotate(0deg);
+/* ============================================================
+   Primitives
+   ============================================================ */
+
+/* Outlined surface with a hard offset shadow — the core building block. */
+.pop {
+  border: 3px solid var(--line);
+  box-shadow: var(--pop-2);
+}
+.pop-sm {
+  border: 2px solid var(--line);
+  box-shadow: var(--pop-1);
+}
+.pop-lg {
+  border: 4px solid var(--line);
+  box-shadow: var(--pop-3);
+}
+
+/* Cards that respond to the pointer by pressing into the page. */
+.pop-lift {
+  transition: transform 0.16s ease, box-shadow 0.16s ease;
+}
+.pop-lift:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 8px 8px 0 var(--shadow-col);
+}
+
+/* Pressable control: the shadow collapses as the button travels. */
+.btn-pop {
+  border: 3px solid var(--line);
+  box-shadow: var(--pop-2);
+  transition: transform 0.12s ease, box-shadow 0.12s ease, filter 0.12s ease;
+}
+.btn-pop:hover:not(:disabled) {
+  transform: translate(2px, 2px);
+  box-shadow: var(--pop-1);
+  filter: saturate(115%);
+}
+.btn-pop:active:not(:disabled) {
+  transform: translate(5px, 5px);
+  box-shadow: 0 0 0 var(--shadow-col);
+}
+.btn-pop:disabled {
+  opacity: 0.55;
+  box-shadow: var(--pop-1);
+  cursor: not-allowed;
+}
+
+/* Rotated circular sticker, as seen on the hero and the brand mark. */
+.sticker {
+  border: 3px solid var(--line);
+  box-shadow: var(--pop-1);
+  border-radius: 9999px;
+  transform: rotate(var(--sticker-tilt, -8deg));
+}
+
+/* ============================================================
+   Display type
+   ============================================================ */
+
+.headline {
+  font-family: var(--font-display);
+  font-weight: 800;
+  line-height: 0.94;
+  letter-spacing: 0.005em;
+  text-transform: uppercase;
+  text-wrap: balance;
+}
+
+/* Cream fill + inked outline + solid extrusion. Used over the hero sky,
+   where both colors are fixed so it survives the theme flip. */
+.headline-pop {
+  color: var(--hero-fill);
+  -webkit-text-stroke: var(--stroke-w, 0.055em) var(--hero-stroke);
+  paint-order: stroke fill;
+  text-shadow: 0 0.035em 0 var(--hero-stroke), 0 0.07em 0 var(--hero-stroke),
+    0 0.105em 0 var(--hero-stroke);
+}
+
+/* Ink fill + a single flat drop, for headings on cream sections. */
+.headline-flat {
+  color: var(--ink);
+  text-shadow: 0.035em 0.045em 0 color-mix(in srgb, var(--ink) 22%, transparent);
+}
+
+/* Small all-caps label used above headings and on ticker text. */
+.eyebrow {
+  font-family: var(--font-display);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+/* ============================================================
+   Sunburst hero backdrop
+   ============================================================ */
+
+.sunburst {
+  position: relative;
+  isolation: isolate;
+  background: var(--hero-bg);
+  overflow: hidden;
+  /* `overflow: hidden` alone does not hold the ray disc (260% wide) when the
+     page is paginated: Chromium's paged-media path — which the PDF export runs
+     through — skips that clip and the rays escape to streak across every page
+     below the hero. `clip-path` is a paint-time clip and is honoured there, so
+     it keeps the burst inside its box on screen and on paper alike. */
+  clip-path: inset(0);
+}
+.sunburst::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 38%;
+  width: 260%;
+  aspect-ratio: 1;
+  translate: -50% -50%;
+  z-index: -1;
+  background: repeating-conic-gradient(
+    from 0deg,
+    var(--hero-ray) 0deg 5.2deg,
+    transparent 5.2deg 12deg
+  );
+  animation: ray-spin 90s linear infinite;
+}
+/* A soft bloom at the burst's origin so the rays fade rather than stop. */
+.sunburst::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: radial-gradient(
+    60% 55% at 50% 38%,
+    color-mix(in srgb, var(--hero-ray) 70%, transparent),
+    transparent 70%
+  );
+}
+
+@keyframes ray-spin {
+  to {
+    rotate: 360deg;
   }
-  100% {
-    background-position: 6% 4%, 92% 6%, 46% 96%, 0 0;
-    filter: hue-rotate(-12deg);
+}
+
+/* ============================================================
+   Marquee ticker
+   ============================================================ */
+
+.ticker {
+  overflow: hidden;
+  border-block: 3px solid var(--line);
+}
+.ticker__track {
+  display: flex;
+  width: max-content;
+  animation: ticker-slide var(--ticker-duration, 32s) linear infinite;
+}
+.ticker--reverse .ticker__track {
+  animation-direction: reverse;
+}
+.ticker:hover .ticker__track {
+  animation-play-state: paused;
+}
+
+@keyframes ticker-slide {
+  to {
+    transform: translateX(-50%);
   }
 }
 
-/* Frosted glass surface. */
-.glass {
-  background: var(--glass-bg);
-  border: 1px solid var(--glass-border);
-  backdrop-filter: blur(14px) saturate(140%);
-  -webkit-backdrop-filter: blur(14px) saturate(140%);
-}
+/* ============================================================
+   Form controls
+   ============================================================ */
 
-.glass-strong {
-  background: var(--glass-bg-strong);
-  border: 1px solid var(--glass-border-strong);
-  backdrop-filter: blur(18px) saturate(150%);
-  -webkit-backdrop-filter: blur(18px) saturate(150%);
+.field-pop {
+  border: 3px solid var(--line);
+  background: var(--paper-2);
+  color: var(--ink);
+  box-shadow: inset 3px 3px 0 color-mix(in srgb, var(--ink) 9%, transparent);
+  transition: box-shadow 0.14s ease, background-color 0.14s ease;
 }
-
-/* Frosted floating-menu surface: near-opaque so overlapped content doesn't
-   bleed through (unlike the translucent panel glasses above). */
-.glass-menu {
-  background: var(--menu-bg);
-  border: 1px solid var(--glass-border-strong);
-  backdrop-filter: blur(18px) saturate(150%);
-  -webkit-backdrop-filter: blur(18px) saturate(150%);
+.field-pop::placeholder {
+  color: color-mix(in srgb, var(--ink) 45%, transparent);
 }
-
-/* A subtle hover-lift used on interactive cards. */
-.lift {
-  transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease;
-}
-.lift:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.45);
-  border-color: var(--glass-border-strong);
+.field-pop:focus {
+  outline: none;
+  background: var(--panel);
+  box-shadow: inset 0 0 0 0 transparent, var(--pop-1);
 }
 
 ::selection {
-  background: rgba(111, 141, 255, 0.35);
-  color: #ffffff;
+  background: var(--lemon);
+  color: var(--on-bright);
 }
 
 :focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
+  outline: 3px solid var(--ink);
+  outline-offset: 3px;
   border-radius: 4px;
 }
 
-/* Respect users who prefer reduced motion: kill drift, lift, and long
-   transitions. The 3D orb checks this preference independently in JS. */
+/* Scrollable code/prompt panels keep the inked look. */
+.scroll-pop {
+  scrollbar-width: thin;
+  scrollbar-color: var(--line) transparent;
+}
+
+/* ============================================================
+   Motion preferences
+   ============================================================ */
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
   *::after {
-    animation-duration: 0.001ms !important;
+    animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
-    transition-duration: 0.001ms !important;
+    transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
-  .aurora-bg {
+  .sunburst::before {
     animation: none;
   }
-  .lift:hover {
+  .ticker__track {
+    animation: none;
+  }
+  .pop-lift:hover,
+  .btn-pop:hover:not(:disabled),
+  .btn-pop:active:not(:disabled) {
     transform: none;
   }
 }
 
-/* Print / "Save as PDF" — the /report/[id]?print=1 view. Keep the dark theme
-   and colored score bars in the PDF regardless of the browser's "background
-   graphics" toggle, and drop the decorative full-screen backdrop. */
+/* ============================================================
+   Print — the shared report is rendered to PDF by Chromium at
+   /report/[id]?print=1, so force the light sheet and keep the
+   ink outlines (they reproduce well on paper).
+   ============================================================ */
+
 @media print {
-  *,
-  *::before,
-  *::after {
+  /* Force the light sheet onto paper. PDF export prints from the reader's own
+     browser, so `data-theme="dark"` is still stamped on <html> while the page
+     background is forced white — without resetting the tokens themselves, cream
+     `--ink` prints on white and the PDF comes out blank. Listing the dark
+     selector here ties its specificity and wins on source order. */
+  :root,
+  :root[data-theme="dark"] {
+    color-scheme: light;
+
+    --paper: #fdeed6;
+    --paper-2: #fff9ee;
+    --panel: #ffffff;
+    --ink: #171436;
+    --ink-soft: #5b5589;
+    --line: #171436;
+    --shadow-col: #171436;
+
+    --sky: #35a7e8;
+    --sky-deep: #0f6ea6;
+    --accent: var(--sky-deep);
+    --accent-2: #0e9e72;
+
+    --hero-bg: #35a7e8;
+    --hero-ray: #56bcf2;
+    --hero-stroke: #14123a;
+    --hero-fill: #fff9ee;
+    --hero-muted: #14123a;
+  }
+  * {
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
   }
-  .aurora-bg {
+  body {
+    background: #ffffff !important;
+  }
+  .paper-texture,
+  .ticker,
+  .no-print {
     display: none !important;
   }
-  html,
-  body {
-    background: #0a0e23 !important;
+  /* Drop the rays when the reader prints from their own browser, keeping the
+     flat `--hero-bg` fill behind them: a full-bleed conic gradient is a lot of
+     ink for no information. The rays no longer *escape* the hero — `.sunburst`
+     is clipped with `clip-path` for that — so this is a deliberate ink choice,
+     not a containment fix. The PDF export renders under screen media and keeps
+     its rays. */
+  .sunburst::before,
+  .sunburst::after {
+    display: none !important;
+  }
+  .pop,
+  .pop-sm,
+  .pop-lg,
+  .btn-pop {
+    box-shadow: none !important;
+  }
+  .pop-break {
+    break-inside: avoid;
+    page-break-inside: avoid;
   }
 }

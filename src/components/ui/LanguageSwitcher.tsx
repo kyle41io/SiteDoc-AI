@@ -7,7 +7,7 @@ import { cn } from "@/lib/cn";
 
 /**
  * Language switcher built as a WAI-ARIA listbox rather than a native `<select>`,
- * so the open menu matches the Aurora Glass design (a native select's popup is
+ * so the open menu matches the Pop Sheet design (a native select's popup is
  * drawn by the OS and can't be styled). The trigger owns focus; the open list
  * uses `aria-activedescendant` with roving highlight and full keyboard support
  * (Arrow/Home/End to move, Enter/Space to choose, Escape to close).
@@ -115,19 +115,17 @@ export function LanguageSwitcher() {
         aria-label={t.language}
         onClick={onTriggerClick}
         onKeyDown={onTriggerKeyDown}
-        className="glass inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium text-[var(--muted-strong)] outline-none transition hover:text-white focus-visible:border-[var(--accent)]"
+        className="btn-pop inline-flex h-11 items-center gap-2 rounded-full bg-paper-2 px-4 font-display text-sm uppercase tracking-wide text-ink outline-none"
       >
-        <span aria-hidden className="text-[var(--muted)]">
-          🌐
-        </span>
+        <span aria-hidden>🌐</span>
         <span>{LOCALE_LABELS[locale]}</span>
         <svg
           aria-hidden
           viewBox="0 0 20 20"
-          className={cn("h-3.5 w-3.5 text-[var(--muted)] transition-transform", open && "rotate-180")}
+          className={cn("h-4 w-4 transition-transform", open && "rotate-180")}
           fill="none"
           stroke="currentColor"
-          strokeWidth="2"
+          strokeWidth="3"
         >
           <path d="M5 7.5 10 12.5 15 7.5" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
@@ -141,7 +139,7 @@ export function LanguageSwitcher() {
           aria-activedescendant={optionId(activeIndex)}
           tabIndex={-1}
           onKeyDown={onListKeyDown}
-          className="glass-menu absolute right-0 z-50 mt-2 min-w-[10rem] overflow-hidden rounded-xl p-1 shadow-[0_20px_50px_rgba(0,0,0,0.55)] outline-none"
+          className="pop absolute right-0 z-50 mt-3 min-w-[11rem] overflow-hidden rounded-2xl bg-panel p-1.5 outline-none"
         >
           {LOCALES.map((code, index) => {
             const selected = code === locale;
@@ -155,8 +153,10 @@ export function LanguageSwitcher() {
                 onClick={() => choose(index)}
                 onMouseEnter={() => setActiveIndex(index)}
                 className={cn(
-                  "flex cursor-pointer items-center justify-between gap-3 rounded-lg px-3 py-2 text-sm font-medium transition",
-                  active ? "bg-white/10 text-white" : "text-[var(--muted-strong)]",
+                  "flex cursor-pointer items-center justify-between gap-3 rounded-xl px-3 py-2 text-sm font-bold transition",
+                  active
+                    ? "border-2 border-line bg-lemon text-on-bright"
+                    : "border-2 border-transparent text-ink",
                 )}
               >
                 <span>{LOCALE_LABELS[code]}</span>
@@ -164,10 +164,10 @@ export function LanguageSwitcher() {
                   <svg
                     aria-hidden
                     viewBox="0 0 20 20"
-                    className="h-4 w-4 text-[var(--accent)]"
+                    className="h-4 w-4"
                     fill="none"
                     stroke="currentColor"
-                    strokeWidth="2.5"
+                    strokeWidth="3.5"
                   >
                     <path d="m5 10.5 3.5 3.5L15 6.5" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>

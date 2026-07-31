@@ -39,6 +39,15 @@ export const es: Dictionary = {
   exportPdfTitle: "La exportación a PDF llegará con el almacenamiento de informes.",
   resultsHeading: "Resultados del análisis",
   language: "Idioma",
+  theme: { label: "Tema", light: "Modo claro", dark: "Modo oscuro" },
+  ticker: [
+    "Escaneo en navegador real",
+    "Accesibilidad con Axe-core",
+    "Core Web Vitals",
+    "Comprobaciones SEO",
+    "PDF para compartir",
+    "Prompt de corrección con IA",
+  ],
   tabs: {
     overview: "Resumen",
     issues: "Problemas",
@@ -105,6 +114,10 @@ export const es: Dictionary = {
     openReport: "Abrir informe",
     notFoundTitle: "Informe no encontrado",
     notFoundBody: "Este informe de auditoría no existe o ya no está disponible.",
+  },
+  pageNotFound: {
+    title: "Página no encontrada",
+    body: "Esa página no existe. Vuelve al inicio para lanzar una nueva auditoría.",
   },
   aiPrompt: {
     intro:
