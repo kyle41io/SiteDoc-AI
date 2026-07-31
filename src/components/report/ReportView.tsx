@@ -7,6 +7,7 @@ import { CATEGORY_ACCENT } from "@/lib/audit/category-meta";
 import { celestialTier, CELESTIAL_COLOR } from "@/lib/celestial";
 import { cn } from "@/lib/cn";
 import type { Dictionary } from "@/i18n/dictionaries";
+import { FitText } from "@/components/ui/FitText";
 import { PopCard } from "@/components/ui/PopCard";
 import { ScoreCard } from "@/components/ui/ScoreCard";
 import { Tabs, type TabItem } from "@/components/ui/Tabs";
@@ -33,6 +34,28 @@ export type ReportViewProps = {
 
 /** Cream inset used for the small explanatory blocks inside a panel. */
 const INSET = "pop-sm rounded-2xl bg-paper-2 p-4";
+
+/** A whole value that is nothing but a URL, so it can be laid out as one. */
+const URL_ONLY = /^https?:\/\/\S+$/;
+
+/**
+ * A URL on a single line, whatever its length: it shrinks to fit rather than
+ * wrapping, because a wrapped URL pushes everything around it out of place.
+ * Beyond the floor it ends in an ellipsis, with the full value on hover.
+ */
+function UrlLine({ text, className }: { text: string; className?: string }) {
+  return (
+    <FitText
+      className={className}
+      maxFontSize="0.75rem"
+      minFontSize="0.6rem"
+      textClassName="font-mono leading-5 text-ink-soft"
+      title={text}
+    >
+      {text}
+    </FitText>
+  );
+}
 
 /** Score tiles for every category that has a measured value (overall is the orb). */
 function scoreBand(report: AuditRecord | null) {
@@ -326,7 +349,11 @@ export function ReportView({ report, t, isRunning = false, fallbackUrl, actions,
             <p className="eyebrow text-[0.7rem] text-ink-soft">{metric.label}</p>
             <p className="font-display text-base text-ink">{metric.value}</p>
           </div>
-          <p className="mt-2 break-words text-xs leading-5 text-ink-soft">{metric.detail}</p>
+          {URL_ONLY.test(metric.detail) ? (
+            <UrlLine className="mt-2" text={metric.detail} />
+          ) : (
+            <p className="mt-2 break-words text-xs leading-5 text-ink-soft">{metric.detail}</p>
+          )}
         </div>
       ))}
     </div>
@@ -373,12 +400,6 @@ export function ReportView({ report, t, isRunning = false, fallbackUrl, actions,
                   {t.celestial[tier]}
                 </span>
               ) : null}
-              <p
-                className="mt-2 line-clamp-2 break-all font-mono text-xs text-ink-soft"
-                title={report?.finalUrl ?? fallbackUrl}
-              >
-                {report?.finalUrl ?? (isRunning ? t.scanning : fallbackUrl)}
-              </p>
             </div>
           </div>
 
@@ -396,6 +417,14 @@ export function ReportView({ report, t, isRunning = false, fallbackUrl, actions,
             )}
           </div>
         </div>
+
+        {/* The audited URL gets the card's full width: it is the one value here
+            with no bound on its length, and a column narrow enough to force it
+            down to a few pixels is worse than a caption line. */}
+        <UrlLine
+          className="mt-4 text-center lg:text-left"
+          text={report?.finalUrl ?? (isRunning ? t.scanning : fallbackUrl ?? "")}
+        />
 
         {!printMode ? (
           <div className="mt-5 flex flex-col gap-3 border-t-[3px] border-dashed border-line pt-4 sm:flex-row sm:items-center sm:justify-between">

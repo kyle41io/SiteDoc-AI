@@ -14,6 +14,16 @@ const MAX_CONCURRENT_PDF = Number(process.env.SITEDOC_MAX_CONCURRENT_PDF) || 1;
 let pdfsInFlight = 0;
 
 /**
+ * A4 at 96dpi in CSS pixels, and the margin used below. Chromium lays the
+ * printed document out in `paper width − horizontal margins`, so the window has
+ * to be exactly that wide: text that measures itself (the fitted URL headline)
+ * is sized while the page is on screen, and from a 1280px window it comes out
+ * too big for the paper and gets clipped.
+ */
+const PDF_MARGIN_PX = 16;
+const PDF_WIDTH_PX = 794 - PDF_MARGIN_PX * 2;
+
+/**
  * Render the shared report to a downloadable PDF with the same Chromium the
  * scanner uses. We navigate to the print-optimized view over the **internal
  * loopback** (127.0.0.1:$PORT) — not the public origin — because hosts like
@@ -49,13 +59,25 @@ export async function GET(
   pdfsInFlight += 1;
   try {
     browser = await chromium.launch(CHROMIUM_LAUNCH_OPTIONS);
-    const page = await browser.newPage();
+    const page = await browser.newPage({
+      viewport: { width: PDF_WIDTH_PX, height: 1123 },
+    });
     await page.emulateMedia({ media: "screen" });
     await page.goto(target, { waitUntil: "networkidle", timeout: 45_000 });
+    // Self-measuring text re-fits once the display font lands, a frame later.
+    await page.evaluate(
+      () =>
+        new Promise<void>((resolve) => {
+          void document.fonts.ready.then(() =>
+            requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+          );
+        }),
+    );
+    const margin = `${PDF_MARGIN_PX}px`;
     const pdf = await page.pdf({
       format: "A4",
       printBackground: true,
-      margin: { top: "16px", bottom: "16px", left: "16px", right: "16px" },
+      margin: { top: margin, bottom: margin, left: margin, right: margin },
     });
 
     return new NextResponse(new Uint8Array(pdf), {

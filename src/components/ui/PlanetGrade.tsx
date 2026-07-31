@@ -25,7 +25,7 @@ export function PlanetGrade({
     <img
       alt={label}
       className={cn(
-        full ? "h-full w-full object-cover" : "h-[86%] w-[86%] object-contain",
+        full ? "h-full w-full object-cover" : "h-[95%] w-[95%] object-contain",
         className,
       )}
       src={PLANET_SPRITE[tier]}

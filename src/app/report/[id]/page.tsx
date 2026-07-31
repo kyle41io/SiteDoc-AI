@@ -5,6 +5,7 @@ import { isAuditId } from "@/lib/audit/id";
 import { DEFAULT_LOCALE, isLocale } from "@/i18n/config";
 import { dictionaries } from "@/i18n/dictionaries";
 import { ReportView } from "@/components/report/ReportView";
+import { FitText } from "@/components/ui/FitText";
 import { Sticker, WaveEdge } from "@/components/ui/decor";
 
 // Reports are read from the store per request — never statically cached.
@@ -45,12 +46,19 @@ export default async function ReportPage({ params, searchParams }: ReportPagePro
                 {t.brand} · {t.report.sharedNote}
               </span>
             </Sticker>
-            <h1
-              className="headline headline-pop mx-auto max-w-3xl break-all text-[clamp(1.5rem,4.6vw,2.9rem)]"
+            {/* The audited URL, always on one line: it shrinks to fit instead of
+                breaking mid-token across two or three lines. */}
+            <FitText
+              as="h1"
+              className="mx-auto max-w-4xl"
+              maxFontSize="clamp(1.5rem, 4.6vw, 2.9rem)"
+              minFontSize="0.85rem"
               style={{ ["--stroke-w" as string]: "0.045em" }}
+              textClassName="headline headline-pop"
+              title={record.finalUrl ?? record.url}
             >
               {record.finalUrl ?? record.url}
-            </h1>
+            </FitText>
             <WaveEdge className="absolute inset-x-0 bottom-0" fill="var(--paper-2)" />
           </div>
 

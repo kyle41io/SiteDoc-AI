@@ -1,9 +1,10 @@
 "use client";
 
-import { FormEvent, useId, useState } from "react";
+import { FormEvent, useId, useRef, useState } from "react";
 import type { AuditRecord } from "@/lib/audit-types";
 import { cn } from "@/lib/cn";
 import { useI18n } from "@/i18n/provider";
+import { FitText } from "@/components/ui/FitText";
 import { PopCard } from "@/components/ui/PopCard";
 import { Sticker, Ticker, WaveEdge } from "@/components/ui/decor";
 import { LanguageSwitcher } from "@/components/ui/LanguageSwitcher";
@@ -12,6 +13,21 @@ import { ReportView } from "@/components/report/ReportView";
 
 /** Rotating chip fills, so the module list reads as a sticker sheet. */
 const CHIP_TONES = ["bg-mint", "bg-lemon", "bg-bubblegum", "bg-aqua", "bg-grape"];
+
+/**
+ * Height reserved for the hero title, in lines of its largest size. The whole
+ * first screen has to look the same in all five locales, and only two things
+ * there change size with the language: this title and the module chip rows.
+ * Both are pinned — the title by fitting the text into this box, the chips by
+ * reserving their two rows below.
+ *
+ * A touch over two lines: English fits two lines at full size with room to
+ * spare, which is what lets the longer translations stay large instead of
+ * dropping a size to squeeze into exactly two.
+ */
+const HERO_TITLE_LINES = 2.35;
+/** Two rows of chips + the gap between them, so a one-row locale still fills it. */
+const CHIP_ROWS_MIN_HEIGHT = "4.5rem";
 
 type PageStatus = "idle" | "running" | "completed" | "failed";
 
@@ -50,6 +66,23 @@ async function readAuditResponse(response: Response) {
 }
 
 const wait = (ms: number) => new Promise((resolve) => window.setTimeout(resolve, ms));
+
+/**
+ * Bring `el` into view, honouring the reduced-motion preference — the global
+ * `scroll-behavior` reset in the stylesheet cannot reach a scripted scroll.
+ *
+ * The scroll waits for the next frame: started inside the event handler that
+ * also changes state, the re-render that follows cancels the smooth animation
+ * outright and the page never moves. A frame later the new layout is in place,
+ * so the target position is the right one too.
+ */
+function scrollTo(el: HTMLElement | null, block: ScrollLogicalPosition) {
+  if (!el) return;
+  const behavior = window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    ? "auto"
+    : "smooth";
+  window.requestAnimationFrame(() => el.scrollIntoView({ behavior, block }));
+}
 
 /**
  * Poll the audit record until it reaches a terminal state. The POST now returns
@@ -118,8 +151,17 @@ export default function Home() {
   const [auditReport, setAuditReport] = useState<AuditRecord | null>(null);
   const [formError, setFormError] = useState("");
   const [copied, setCopied] = useState(false);
+  const formRef = useRef<HTMLFormElement | null>(null);
+  const progressRef = useRef<HTMLDivElement | null>(null);
 
   const isRunning = status === "running";
+
+  /** Report a failure and take the user back to the field that caused it. */
+  function failWith(message: string) {
+    setStatus("failed");
+    setFormError(message);
+    scrollTo(formRef.current, "center");
+  }
 
   async function runAudit() {
     if (isRunning) return;
@@ -128,6 +170,9 @@ export default function Home() {
     setFormError("");
     setAuditReport(null);
     setActiveStep(0);
+    // The hero owns the first screen, so the pipeline and the report would both
+    // run out of sight. Move down to them as the scan starts.
+    scrollTo(progressRef.current, "start");
 
     const stepTimer = window.setInterval(() => {
       setActiveStep((step) => Math.min(step + 1, t.steps.length - 1));
@@ -144,14 +189,14 @@ export default function Home() {
       const queued = data as AuditRecord;
       const report = await pollAudit(queued.id);
       setAuditReport(report);
-      setStatus(report.status === "failed" ? "failed" : "completed");
 
       if (report.status === "failed") {
-        setFormError(report.error ?? "The audit could not be completed.");
+        failWith(report.error ?? "The audit could not be completed.");
+      } else {
+        setStatus("completed");
       }
     } catch (error) {
-      setStatus("failed");
-      setFormError(
+      failWith(
         error instanceof Error ? error.message : "The audit could not be completed.",
       );
     } finally {
@@ -230,12 +275,21 @@ export default function Home() {
                 {t.newAudit} · {t.newAuditHint}
               </span>
             </Sticker>
-            <h1
-              className="headline headline-pop mx-auto max-w-4xl text-[clamp(2.1rem,7.4vw,4.6rem)]"
+            {/* Fitted into a box whose height comes only from the type scale, so
+                the hero is exactly as tall in Vietnamese or Chinese as it is in
+                English and the marquees below it stay on the first screen. */}
+            <FitText
+              as="h1"
+              className="mx-auto max-w-4xl"
+              lineHeight={0.94}
+              lines={HERO_TITLE_LINES}
+              maxFontSize="clamp(2.1rem, 7.4vw, 4.6rem)"
+              minFontSize="1.5rem"
               style={{ ["--stroke-w" as string]: "0.05em" }}
+              textClassName="headline headline-pop"
             >
               {t.title}
-            </h1>
+            </FitText>
             <WaveEdge className="absolute inset-x-0 bottom-0" fill="var(--paper-2)" />
           </div>
 
@@ -246,6 +300,7 @@ export default function Home() {
 
             <form
               className="mx-auto mt-6 max-w-3xl"
+              ref={formRef}
               onSubmit={(event: FormEvent<HTMLFormElement>) => {
                 event.preventDefault();
                 void runAudit();
@@ -285,7 +340,10 @@ export default function Home() {
                 <legend className="eyebrow text-[0.7rem] text-ink-soft">
                   {t.modulesTitle} · {t.modulesHint}
                 </legend>
-                <ul className="mt-2.5 flex flex-wrap justify-center gap-2 sm:justify-start">
+                <ul
+                  className="mt-2.5 flex flex-wrap content-start justify-center gap-2 sm:justify-start"
+                  style={{ minHeight: CHIP_ROWS_MIN_HEIGHT }}
+                >
                   {t.modules.map((label, index) => (
                     <li
                       className={cn(
@@ -314,7 +372,10 @@ export default function Home() {
         reverse
       />
 
-      <div className="mx-auto mt-10 w-full max-w-6xl space-y-6 px-4 sm:px-6">
+      <div
+        className="mx-auto mt-10 w-full max-w-6xl scroll-mt-5 space-y-6 px-4 sm:px-6"
+        ref={progressRef}
+      >
         {/* Scanner pipeline stepper */}
         <PopCard className="p-5" tone="panel">
           <h2 className="eyebrow text-[0.72rem] text-ink-soft">{t.pipeline}</h2>

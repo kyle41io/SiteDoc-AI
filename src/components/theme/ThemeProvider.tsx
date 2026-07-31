@@ -9,7 +9,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { readPreferredTheme, THEME_STORAGE_KEY } from "@/components/theme/theme-script";
+import { readStoredTheme, THEME_STORAGE_KEY } from "@/components/theme/theme-script";
 
 export type Theme = "light" | "dark";
 
@@ -27,9 +27,10 @@ function isTheme(value: unknown): value is Theme {
 }
 
 /**
- * Owns the light/dark sheet. The initial value is resolved before paint by
- * THEME_INIT_SCRIPT; this provider adopts whatever that script decided (so
- * server and first client render agree on "light") and then keeps
+ * Owns the light/dark sheet. Light is the default; dark is opt-in through the
+ * toggle and remembered in localStorage. The initial value is resolved before
+ * paint by THEME_INIT_SCRIPT; this provider adopts whatever that script decided
+ * (so server and first client render agree on "light") and then keeps
  * `data-theme` and localStorage in step with the toggle.
  */
 export function ThemeProvider({ children }: { children: ReactNode }) {
@@ -41,7 +42,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     // Fall back to resolving the preference here when the pre-paint script did
     // not stamp anything — on a route-level not-found boundary it never runs,
     // and without this the page is pinned to the light sheet.
-    const resolved = isTheme(stamped) ? stamped : readPreferredTheme();
+    const resolved = isTheme(stamped) ? stamped : readStoredTheme();
     if (!isTheme(stamped)) {
       document.documentElement.dataset.theme = resolved;
     }

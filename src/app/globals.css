@@ -86,10 +86,14 @@
   --panel: #241f60;
   --ink: #fff4e2;
   --ink-soft: #b3abe0;
-  /* Outlines flip to a light lilac; the hard shadow stays near-black so
-     depth still reads as "lit from the top-left". */
+  /* Outlines flip to a light lilac. The hard shadow cannot stay near-black:
+     on a deep indigo sheet a near-black slab is invisible, so the extrusion
+     that carries the whole 3D effect in light mode disappears. It becomes a
+     mid violet instead — bright enough to separate from both the page
+     (`--paper`) and the card fills (`--paper-2`/`--panel`) at ~3:1, still
+     clearly darker than `--line` so the outline stays the crispest edge. */
   --line: #cec5f7;
-  --shadow-col: #05040f;
+  --shadow-col: #7d6ae0;
 
   --sky: #4fb3ee;
   --sky-deep: #8fd3ff;
@@ -457,6 +461,12 @@ body {
   .pop-lg,
   .btn-pop {
     box-shadow: none !important;
+  }
+  /* FitText's size is measured against the window; paper is a different width,
+     and nothing re-measures once the print layout exists. Hand the size back to
+     the width-relative estimate, which follows the paper box. */
+  .fit-text-box {
+    --fit-size: var(--fit-start) !important;
   }
   .pop-break {
     break-inside: avoid;
