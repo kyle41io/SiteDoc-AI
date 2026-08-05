@@ -62,8 +62,14 @@ jobs:
     needs: verify
     runs-on: ubuntu-latest
     # The approval gate. It is also what the OIDC trust policy pins `sub` to, so
-    # removing it does not just skip the prompt — it breaks the role.
-    environment: production
+    # renaming it does not just move the prompt — it breaks the role.
+    #
+    # NOT `production`: GitHub matches environment names case-insensitively, and
+    # the Vercel integration already owns one called `Production` with no
+    # protection rules. `environment: production` silently attaches to that one,
+    # so nothing is ever reviewed, and the `sub` claim then reads
+    # `:environment:Production` which IAM's case-sensitive StringEquals rejects.
+    environment: aws-production
     permissions:
       contents: read
       id-token: write
@@ -81,7 +87,19 @@ jobs:
         with:
           name: build-output
 
-      - uses: aws-actions/configure-aws-credentials@v4
+      # Without this, an unset AWS_ROLE_ARN surfaces as "Could not load
+      # credentials from any providers" from the step below, which reads like a
+      # broken workflow rather than a missing setting.
+      - name: Check the deploy role is configured
+        run: |
+          if [ -z "${{ vars.AWS_ROLE_ARN }}" ]; then
+            echo "::error::AWS_ROLE_ARN is not set on the aws-production environment."
+            echo "Apply infra/bootstrap first (plan task 9), then add its deploy_role_arn"
+            echo "output as an environment variable on aws-production (plan task 12)."
+            exit 1
+          fi
+
+      - uses: aws-actions/configure-aws-credentials@v6
         with:
           role-to-assume: ${{ vars.AWS_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
