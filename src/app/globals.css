@@ -151,6 +151,13 @@ body {
   text-rendering: optimizeLegibility;
 }
 
+
+button:not(:disabled),
+[role="button"]:not([aria-disabled="true"]),
+summary {
+  cursor: pointer;
+}
+
 /* Faint halftone dots so the cream never reads as flat printer paper. */
 .paper-texture {
   position: fixed;
