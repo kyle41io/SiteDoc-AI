@@ -65,19 +65,25 @@ Run the development server:
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) in your browser.
+That starts two processes: `next dev` on [http://localhost:3000](http://localhost:3000)
+for the UI, and the API host on port 4000. The frontend is a static export, so the API
+cannot live inside Next any more — the client finds it through `NEXT_PUBLIC_API_BASE`
+(set to `http://localhost:4000` in `.env.development`, empty in production where both
+share one CloudFront origin).
 
 ## Available Scripts
 
 ```bash
-npm run dev        # start the dev server
-npm run lint       # ESLint
-npm run typecheck  # tsc --noEmit
-npm test           # Vitest (unit/component)
-npm run test:watch # Vitest in watch mode
-npm run build      # production build (also type-checks)
-npm run start      # serve the production build
-npm run test:e2e   # Playwright end-to-end smoke test (boots the built app)
+npm run dev           # next dev + the local API host (ports 3000 and 4000)
+npm run dev:api       # just the API host, on port 4000
+npm run serve:local   # serve out/ + the API on port 3000 (stand-in for CloudFront)
+npm run lint          # ESLint
+npm run typecheck     # tsc --noEmit
+npm test              # Vitest (unit/component)
+npm run test:watch    # Vitest in watch mode
+npm run build         # static export to out/ (also type-checks)
+npm run bundle:lambda # esbuild the Lambda handlers into dist-lambda/
+npm run test:e2e      # Playwright end-to-end smoke test (run `npm run build` first)
 ```
 
 The verification gate before completing a change is: `lint`, `typecheck`, `test`, `build`.
@@ -90,7 +96,7 @@ The verification gate before completing a change is: `lint`, `typecheck`, `test`
 - Browser console error collection
 - Failed network request and HTTP 4xx/5xx collection
 - Local JSON audit records under `.data/audits`
-- Local screenshot artifacts under `.data/audit-artifacts` (served via an API route)
+- Local screenshot artifacts under `.data/audit-artifacts` (served at `/artifacts/*`)
 - Scanner, console, network, and overall scorecards
 - Categorized issue list with severity labels and remediation guidance
 - Responsive dashboard layout
@@ -98,16 +104,25 @@ The verification gate before completing a change is: `lint`, `typecheck`, `test`
 ## Project Structure
 
 ```text
-src/app/                 Routes + API (App Router)
+src/app/                 Pages (App Router, statically exported)
+src/lib/api/             Framework-free request handlers (audits, PDF)
 src/lib/audit-types.ts   Core audit data model
 src/lib/audit/scoring.ts Pure scoring helpers (unit-tested)
+src/lib/audit/dispatch.ts      AuditDispatcher: in-process queue or SQS
 src/lib/playwright-scanner.ts  Playwright scan orchestration
 src/lib/url-validation.ts      SSRF guard for public URLs
-src/lib/store/           AuditStore interface + local FS implementation
+src/lib/store/           AuditStore + ArtifactStore, local / DynamoDB / S3
+lambda/                  Lambda entry points (api, scan, pdf) — plumbing only
+scripts/local-server.ts  Local stand-in for the deployed edge
+esbuild.config.mjs       Bundles the Lambda handlers
+Dockerfile.lambda        Chromium image for the scan and PDF functions
 ```
 
-Storage is accessed only through the `AuditStore` abstraction (`@/lib/store`), so a
-database-backed implementation can be swapped in later without touching callers.
+Nothing in `src/lib` knows about AWS except three adapters. Records go through
+`AuditStore`, screenshots through `ArtifactStore`, and background work through
+`AuditDispatcher`; each has a local implementation and a cloud one, selected by
+environment variable. The Lambda handlers and the local server are both thin callers
+over `src/lib/api`.
 
 ## Credits
 
@@ -130,48 +145,71 @@ Shipped: Pop Sheet design system (light + dark) + celestial score grade · **axe
 
 Upcoming:
 
-- Object storage for screenshots and a managed database for multi-instance scale
+- AWS infrastructure as Terraform, a keyless OIDC deploy workflow, and the Render
+  decommission — see
+  [`docs/superpowers/specs/2026-08-05-aws-migration-design.md`](docs/superpowers/specs/2026-08-05-aws-migration-design.md)
 
 ## Async Audit Jobs
 
 Submitting a URL returns immediately (`202`) with a `queued` record; the Playwright scan
-and AI enrichment run in a background queue (bounded concurrency, default 2), and the UI
-polls `GET /api/audits?id=` through `queued → running → completed`. This keeps requests
-fast and decouples the heavy work from the response.
+and AI enrichment run in the background, and the UI polls `GET /api/audits?id=` through
+`queued → running → completed`. This keeps requests fast and decouples the heavy work from
+the response.
+
+How that background work is started is behind the `AuditDispatcher` seam: an in-process
+concurrency queue by default (dev and tests need no AWS), or SQS with
+`SITEDOC_DISPATCH=sqs`, which the deployed API uses because Lambda freezes execution once
+the response is sent. The queue path also gains retries and a dead-letter queue.
 
 ## Storage
 
 Audit records are accessed only through the `AuditStore` abstraction:
 
 - **Local JSON** (default): `.data/audits/{auditId}.json`.
+- **DynamoDB** (`AUDIT_STORE=dynamo`, table from `SITEDOC_TABLE`): one gzipped item per
+  audit with a 30-day TTL. Oversized records shed console noise, then failed requests,
+  then the least severe issues, rather than failing the write.
 
-Screenshots are written to `.data/audit-artifacts/{auditId}/{desktop,mobile}.png` and
-served by the `/api/artifacts/[id]/[file]` route (not from `public/`, which `next start`
-only serves for files present at build time). All `.data` paths are git-ignored. For
-multi-instance scale, move screenshots to object storage and point `AuditStore` at a
-managed database.
+Screenshots go through the matching `ArtifactStore` abstraction:
+
+- **Local disk** (default): `.data/audit-artifacts/{auditId}/{desktop,mobile}.png`.
+- **S3** (`SITEDOC_ARTIFACTS=s3`, bucket from `SITEDOC_ARTIFACT_BUCKET`): staged in `/tmp`,
+  uploaded under `audits/{auditId}/`, immutably cached.
+
+Both serve at `/artifacts/{auditId}/{file}`, so dev and production share one URL shape.
+All `.data` paths are git-ignored.
 
 ## Deployment
 
-Playwright needs a full Chromium, which doesn't fit serverless functions, so the app ships
-as a **container** built on the official Playwright image (Chromium preinstalled):
+The target is a static frontend on S3 behind CloudFront, with three Lambda functions
+behind the same origin — so there is no compute in the page path and no cold start on
+first paint:
+
+| Piece | Runs as | Serves |
+|---|---|---|
+| Frontend | static export in `out/`, on S3 | `/`, `/report/{id}` (rewritten to the exported shell) |
+| `sitedoc-api` | zip, `nodejs22.x`, 360 KB bundle | `/api/audits` |
+| `sitedoc-scan` | container image (`Dockerfile.lambda`) | SQS messages from the API |
+| `sitedoc-pdf` | same image, different command | `/pdf/{id}` |
+| Screenshots | S3, edge-cached | `/artifacts/{id}/{file}` |
+
+Build the pieces locally:
 
 ```bash
-docker build -t sitedoc-ai .
-
-# OPENAI_API_KEY is optional (AI falls back deterministically without it).
-# Mount both volumes to persist audits AND their screenshots across restarts.
-docker run -p 3000:3000 \
-  -e OPENAI_API_KEY=sk-... \
-  -v sitedoc-data:/app/.data \
-  sitedoc-ai
+npm run build           # static export → out/
+npm run bundle:lambda   # handlers → dist-lambda/{api,scan,pdf}/index.js
+docker build -f Dockerfile.lambda -t sitedoc-browser:local .
 ```
 
-Audit **records and screenshots** both live under `/app/.data`, so the single volume above
-persists everything across restarts.
-(Screenshots are served by the `/api/artifacts/[id]/[file]` route — not from `public/` —
-because `next start` won't serve files written there after build.) For multi-instance
-scale, move screenshots to object storage and point `AuditStore` at a managed database.
+The image is based on the same `playwright:v1.60.0-jammy` build as before, because audit
+output is browser-dependent: a different Chromium silently changes the scores. Secrets are
+read from SSM Parameter Store at cold start (`SSM_PREFIX`); without it the functions use
+plain environment variables, which is what local development does.
 
-It runs on any container host (Railway, Render, Fly.io, a VM). CI (`.github/workflows/ci.yml`)
-runs lint, typecheck, unit tests, build, and the Playwright E2E on every push/PR.
+`npm run serve:local` approximates the CloudFront routing table on one port, and is what
+the e2e suite runs against. CI (`.github/workflows/ci.yml`) runs lint, typecheck, unit
+tests, build, and the Playwright E2E on every push/PR.
+
+Terraform, the OIDC deploy workflow and the Render decommission are the next phase; until
+they land, `Dockerfile` and `render.yaml` describe the previous container deploy and no
+longer match the app (`next start` is gone under a static export).
