@@ -16,8 +16,12 @@ export default defineConfig({
     baseURL: "http://localhost:3000",
     trace: "on-first-retry",
   },
+  /**
+   * Serves the static export plus the API from one origin, approximating the
+   * CloudFront routing table so routing mistakes surface locally.
+   */
   webServer: {
-    command: "npm run start",
+    command: "npm run serve:local",
     url: "http://localhost:3000",
     timeout: 120_000,
     reuseExistingServer: !process.env.CI,

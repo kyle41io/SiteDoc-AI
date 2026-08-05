@@ -19,9 +19,9 @@ describe("LocalArtifactStore", () => {
     await expect(store.publish("abc", ["desktop.png"])).resolves.toBeUndefined();
   });
 
-  it("serves artifacts through the existing route so behavior is unchanged", () => {
+  it("serves artifacts on the same path shape CloudFront uses", () => {
     const store = new LocalArtifactStore("/tmp/whatever");
 
-    expect(store.urlFor("abc", "desktop.png")).toBe("/api/artifacts/abc/desktop.png");
+    expect(store.urlFor("abc", "desktop.png")).toBe("/artifacts/abc/desktop.png");
   });
 });

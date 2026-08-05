@@ -26,6 +26,6 @@ export class LocalArtifactStore implements ArtifactStore {
   }
 
   urlFor(auditId: string, file: string): string {
-    return `/api/artifacts/${auditId}/${file}`;
+    return `/artifacts/${auditId}/${file}`;
   }
 }
