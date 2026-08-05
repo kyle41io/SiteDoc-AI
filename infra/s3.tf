@@ -66,3 +66,56 @@ resource "aws_s3_bucket_lifecycle_configuration" "artifacts" {
     }
   }
 }
+
+# `AWS:SourceArn` conditioned on this one distribution. Without that condition the
+# policy trusts any CloudFront distribution in any AWS account — the
+# confused-deputy hole in S3-behind-CloudFront setups.
+data "aws_iam_policy_document" "frontend" {
+  statement {
+    sid       = "AllowCloudFrontRead"
+    effect    = "Allow"
+    actions   = ["s3:GetObject"]
+    resources = ["${aws_s3_bucket.frontend.arn}/*"]
+
+    principals {
+      type        = "Service"
+      identifiers = ["cloudfront.amazonaws.com"]
+    }
+
+    condition {
+      test     = "StringEquals"
+      variable = "AWS:SourceArn"
+      values   = [aws_cloudfront_distribution.main.arn]
+    }
+  }
+}
+
+data "aws_iam_policy_document" "artifacts" {
+  statement {
+    sid       = "AllowCloudFrontRead"
+    effect    = "Allow"
+    actions   = ["s3:GetObject"]
+    resources = ["${aws_s3_bucket.artifacts.arn}/*"]
+
+    principals {
+      type        = "Service"
+      identifiers = ["cloudfront.amazonaws.com"]
+    }
+
+    condition {
+      test     = "StringEquals"
+      variable = "AWS:SourceArn"
+      values   = [aws_cloudfront_distribution.main.arn]
+    }
+  }
+}
+
+resource "aws_s3_bucket_policy" "frontend" {
+  bucket = aws_s3_bucket.frontend.id
+  policy = data.aws_iam_policy_document.frontend.json
+}
+
+resource "aws_s3_bucket_policy" "artifacts" {
+  bucket = aws_s3_bucket.artifacts.id
+  policy = data.aws_iam_policy_document.artifacts.json
+}
