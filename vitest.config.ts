@@ -9,7 +9,11 @@ export default defineConfig({
     environment: "jsdom",
     globals: true,
     setupFiles: ["./vitest.setup.ts"],
-    include: ["src/**/*.{test,spec}.{ts,tsx}"],
+    include: [
+      "src/**/*.{test,spec}.{ts,tsx}",
+      "scripts/**/*.{test,spec}.ts",
+      "lambda/**/*.{test,spec}.ts",
+    ],
     // Unit/component tests don't need real CSS processing; treat CSS as empty
     // so Tailwind v4 / PostCSS isn't pulled into the test runtime.
     css: false,
