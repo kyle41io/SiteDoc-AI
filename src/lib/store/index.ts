@@ -1,23 +1,24 @@
+import type { ArtifactStore } from "@/lib/store/artifact-types";
+import { LocalArtifactStore } from "@/lib/store/local-artifact-store";
 import { LocalAuditStore } from "@/lib/store/local-store";
-import { SqliteAuditStore } from "@/lib/store/sqlite-store";
 import type { AuditStore } from "@/lib/store/types";
 
 export type { AuditStore } from "@/lib/store/types";
-export {
-  getAuditArtifactDirectory,
-  getAuditArtifactUrl,
-} from "@/lib/store/local-store";
+export type { ArtifactStore } from "@/lib/store/artifact-types";
 
 /**
- * The active audit store. Defaults to the local filesystem JSON store (no native
- * deps in dev/tests); set `AUDIT_STORE=sqlite` for a durable SQLite store that
- * survives restarts (used in the container deploy). Screenshots remain on disk
- * regardless — see the artifact helpers in `local-store`.
+ * The active artifact store. Local disk by default; `SITEDOC_ARTIFACTS=s3`
+ * selects object storage (added with the S3 implementation).
  */
-// Bracket access so Next's bundler does NOT inline this at build time — dot
-// access (`process.env.AUDIT_STORE`) gets statically replaced with the build-time
-// value, which would freeze the selection. We need the runtime value.
-const storeKind = process.env["AUDIT_STORE"];
+export const artifactStore: ArtifactStore = new LocalArtifactStore();
 
-export const auditStore: AuditStore =
-  storeKind === "sqlite" ? new SqliteAuditStore() : new LocalAuditStore();
+/**
+ * The active audit store. Defaults to the local filesystem JSON store (no
+ * native deps in dev/tests); `AUDIT_STORE=dynamo` selects DynamoDB for the
+ * deployed functions (wired with the Dynamo implementation).
+ *
+ * The selection is read with bracket access so Next's bundler does NOT inline
+ * it at build time — dot access gets statically replaced with the build-time
+ * value, which would freeze the selection. We need the runtime value.
+ */
+export const auditStore: AuditStore = new LocalAuditStore();

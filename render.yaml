@@ -20,8 +20,6 @@ services:
     healthCheckPath: /
     autoDeploy: true
     envVars:
-      - key: AUDIT_STORE
-        value: sqlite
       # Only one Chromium at a time — critical on the 512 MB free tier.
       - key: SITEDOC_MAX_CONCURRENT_SCANS
         value: "1"

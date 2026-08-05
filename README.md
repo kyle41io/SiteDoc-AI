@@ -126,7 +126,7 @@ That spec's UI section is historical: the "Aurora Glass" glassmorphism system an
 WebGL celestial hero it describes were replaced by the Pop Sheet design and flat sticker
 artwork.
 
-Shipped: Pop Sheet design system (light + dark) + celestial score grade · **axe-core accessibility engine** · **deterministic SEO + performance checks** (categorized, scored, localized) · **AI remediation layer** (Claude or OpenAI + deterministic fallback, localized) · **shareable `/report/{id}` pages + one-click PDF export** · **async job model + durable SQLite store + containerized deploy + CI/E2E** · 5-language i18n.
+Shipped: Pop Sheet design system (light + dark) + celestial score grade · **axe-core accessibility engine** · **deterministic SEO + performance checks** (categorized, scored, localized) · **AI remediation layer** (Claude or OpenAI + deterministic fallback, localized) · **shareable `/report/{id}` pages + one-click PDF export** · **async job model + containerized deploy + CI/E2E** · 5-language i18n.
 
 Upcoming:
 
@@ -144,8 +144,6 @@ fast and decouples the heavy work from the response.
 Audit records are accessed only through the `AuditStore` abstraction:
 
 - **Local JSON** (default): `.data/audits/{auditId}.json`.
-- **SQLite** (`AUDIT_STORE=sqlite`): a durable `.data/sitedoc.db` that survives restarts —
-  the default inside the container image.
 
 Screenshots are written to `.data/audit-artifacts/{auditId}/{desktop,mobile}.png` and
 served by the `/api/artifacts/[id]/[file]` route (not from `public/`, which `next start`
@@ -169,8 +167,8 @@ docker run -p 3000:3000 \
   sitedoc-ai
 ```
 
-The image defaults to `AUDIT_STORE=sqlite`. Audit **records and screenshots** both live
-under `/app/.data`, so the single volume above persists everything across restarts.
+Audit **records and screenshots** both live under `/app/.data`, so the single volume above
+persists everything across restarts.
 (Screenshots are served by the `/api/artifacts/[id]/[file]` route — not from `public/` —
 because `next start` won't serve files written there after build.) For multi-instance
 scale, move screenshots to object storage and point `AuditStore` at a managed database.

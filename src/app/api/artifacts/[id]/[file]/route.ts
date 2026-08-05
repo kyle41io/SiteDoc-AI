@@ -2,7 +2,7 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { NextResponse } from "next/server";
 import { isAuditId } from "@/lib/audit/id";
-import { getAuditArtifactDirectory } from "@/lib/store";
+import { artifactStore } from "@/lib/store";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -28,7 +28,7 @@ export async function GET(
   }
 
   try {
-    const bytes = await readFile(path.join(getAuditArtifactDirectory(id), file));
+    const bytes = await readFile(path.join(artifactStore.stagingDirectory(id), file));
     return new NextResponse(new Uint8Array(bytes), {
       status: 200,
       headers: {
