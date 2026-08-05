@@ -48,7 +48,7 @@ export async function POST(request: NextRequest) {
   // request fast and decouples the heavy Playwright/AI work from the response.
   const queued = queuedAuditRecord(job, strings);
   await auditStore.save(queued);
-  enqueueAudit(job);
+  await enqueueAudit(job);
 
   return NextResponse.json(queued, { status: 202 });
 }
