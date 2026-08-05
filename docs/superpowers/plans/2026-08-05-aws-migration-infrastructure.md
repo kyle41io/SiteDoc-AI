@@ -457,8 +457,23 @@ credential; after that every deploy is keyless.
         "ecr:BatchGetImage", "ecr:GetDownloadUrlForLayer", "ecr:Describe*",
         "ecr:InitiateLayerUpload", "ecr:UploadLayerPart",
         "ecr:CompleteLayerUpload", "ecr:PutImage",
+        # The `aws_ecr_repository` data source reads tags as well as the
+        # repository, and ListTagsForResource is not covered by Describe*.
+        "ecr:ListTagsForResource",
       ]
       resources = ["*"] # GetAuthorizationToken has no resource
+    }
+
+    # `data.aws_kms_alias.ssm` calls ListAliases, which takes no resource and
+    # has no key-policy path — without this every plan fails with AccessDenied
+    # before it reaches a single resource. Encrypting the SecureString
+    # parameters themselves needs no IAM grant: the AWS-managed key's own policy
+    # authorizes it for calls arriving via ssm.amazonaws.com.
+    statement {
+      sid       = "DiscoverManagedKey"
+      effect    = "Allow"
+      actions   = ["kms:ListAliases", "kms:DescribeKey"]
+      resources = ["*"]
     }
 
     statement {
@@ -539,7 +554,9 @@ credential; after that every deploy is keyless.
       sid    = "Edge"
       effect = "Allow"
       actions = [
-        "cloudfront:Get*", "cloudfront:List*",
+        # Describe* as well as Get*: reading a CloudFront Function uses
+        # cloudfront:DescribeFunction, which Get* does not match.
+        "cloudfront:Get*", "cloudfront:List*", "cloudfront:Describe*",
         "cloudfront:CreateDistribution", "cloudfront:UpdateDistribution",
         "cloudfront:DeleteDistribution",
         "cloudfront:CreateOriginAccessControl", "cloudfront:UpdateOriginAccessControl",
