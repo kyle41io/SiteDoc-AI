@@ -210,6 +210,11 @@ plain environment variables, which is what local development does.
 the e2e suite runs against. CI (`.github/workflows/ci.yml`) runs lint, typecheck, unit
 tests, build, and the Playwright E2E on every push/PR.
 
-Terraform, the OIDC deploy workflow and the Render decommission are the next phase; until
+Provisioning the AWS side requires **Terraform 1.11+, AWS CLI v2 and Docker**. The
+infrastructure is two Terraform stacks: `infra/bootstrap/` (applied once by hand — remote
+state bucket, GitHub OIDC provider, deploy role, ECR repository) and `infra/` (everything
+else, applied by the deploy pipeline).
+
+The OIDC deploy workflow and the Render decommission are the next phase; until
 they land, `Dockerfile` and `render.yaml` describe the previous container deploy and no
 longer match the app (`next start` is gone under a static export).
