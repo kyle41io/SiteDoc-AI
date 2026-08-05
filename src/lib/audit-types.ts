@@ -133,6 +133,11 @@ export type AuditRecord = {
   metrics: AuditMetric[];
   scores: AuditScores;
   summary: string;
+  /**
+   * Set when the record had to be shed to fit the store's item limit. Not
+   * rendered — it exists so a surprising report can be explained.
+   */
+  truncated?: true;
   /** AI-generated remediation report, added in the AI phase. */
   ai?: AuditAiReport;
 };

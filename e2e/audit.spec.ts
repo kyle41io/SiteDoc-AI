@@ -5,7 +5,7 @@ test("home page renders the audit dashboard", async ({ page }) => {
   await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
 });
 
-test("async audit completes and is served as a report + PDF", async ({ request }) => {
+test("async audit completes and is served as a report + PDF", async ({ page, request }) => {
   // POST returns immediately with a queued record (async job model).
   const post = await request.post("/api/audits", {
     data: { url: "https://example.com", language: "en" },
@@ -24,13 +24,14 @@ test("async audit completes and is served as a report + PDF", async ({ request }
   }
   expect(status).toBe("completed");
 
-  // Shareable report page renders.
-  const report = await request.get(`/report/${queued.id}`);
-  expect(report.status()).toBe(200);
-  expect(await report.text()).toContain("example.com");
+  // The shareable report is a static shell that fetches its own record, so it
+  // has to be driven in a browser rather than asserted on raw HTML.
+  await page.goto(`/report/${queued.id}`);
+  await expect(page.locator("[data-report-ready='true']")).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("example.com");
 
   // PDF export returns a real downloadable PDF.
-  const pdf = await request.get(`/report/${queued.id}/pdf`);
+  const pdf = await request.get(`/pdf/${queued.id}`);
   expect(pdf.status()).toBe(200);
   expect(pdf.headers()["content-type"]).toContain("application/pdf");
 });

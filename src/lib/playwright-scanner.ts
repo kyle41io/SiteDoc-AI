@@ -1,6 +1,6 @@
 import { mkdir } from "node:fs/promises";
 import path from "node:path";
-import { CHROMIUM_LAUNCH_OPTIONS } from "@/lib/chromium";
+import { CHROMIUM_LAUNCH_OPTIONS, shimEvaluateHelpers } from "@/lib/chromium";
 import { chromium, type Browser, type BrowserContext, type Page } from "playwright";
 import type {
   AuditIssue,
@@ -9,10 +9,7 @@ import type {
   ConsoleError,
   FailedRequest,
 } from "@/lib/audit-types";
-import {
-  getAuditArtifactDirectory,
-  getAuditArtifactUrl,
-} from "@/lib/store";
+import { artifactStore } from "@/lib/store";
 import {
   accessibilityScore,
   overallScore,
@@ -237,6 +234,7 @@ async function captureViewport(
   try {
     context = await createGuardedContext(browser, viewport);
     const page = await context.newPage();
+    await shimEvaluateHelpers(page);
 
     if (observers) {
       bindPageObservers(page, observers.consoleErrors, observers.failedRequests);
@@ -312,7 +310,7 @@ function buildSummary(
 
 export async function runPlaywrightScan(options: ScanOptions): Promise<AuditRecord> {
   const started = Date.now();
-  const artifactDirectory = getAuditArtifactDirectory(options.auditId);
+  const artifactDirectory = artifactStore.stagingDirectory(options.auditId);
   const consoleErrors: ConsoleError[] = [];
   const failedRequests: FailedRequest[] = [];
 
@@ -335,6 +333,10 @@ export async function runPlaywrightScan(options: ScanOptions): Promise<AuditReco
       width: 390,
       height: 844,
     });
+
+    // Hand the captured PNGs to the artifact store. Local disk is already done;
+    // S3 uploads here. The scanner deliberately does not know which.
+    await artifactStore.publish(options.auditId, ["desktop.png", "mobile.png"]);
 
     const durationMs = Date.now() - started;
     const dedupedConsoleErrors = uniqueBy(
@@ -384,8 +386,8 @@ export async function runPlaywrightScan(options: ScanOptions): Promise<AuditReco
       completedAt: new Date().toISOString(),
       durationMs,
       screenshots: {
-        desktop: getAuditArtifactUrl(options.auditId, "desktop.png"),
-        mobile: getAuditArtifactUrl(options.auditId, "mobile.png"),
+        desktop: artifactStore.urlFor(options.auditId, "desktop.png"),
+        mobile: artifactStore.urlFor(options.auditId, "mobile.png"),
       },
       consoleErrors: dedupedConsoleErrors,
       failedRequests: dedupedFailedRequests,

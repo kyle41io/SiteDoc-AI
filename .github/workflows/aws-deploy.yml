@@ -1,0 +1,138 @@
+name: Deploy to AWS
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "src/**"
+      - "lambda/**"
+      - "infra/**"
+      - "scripts/**"
+      - "public/**"
+      - "next.config.ts"
+      - "package.json"
+      - "package-lock.json"
+      - "Dockerfile.lambda"
+      - ".github/workflows/aws-deploy.yml"
+  workflow_dispatch:
+
+# Two applies must never race. Queue rather than cancel: cancelling mid-apply
+# leaves the state lock held and the state one resource behind reality.
+concurrency:
+  group: aws-deploy
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  AWS_REGION: us-east-1
+  ECR_REPOSITORY: sitedoc-browser
+  # The deployed Chromium comes from the container image, so neither job needs
+  # Playwright's own browser download.
+  PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: "1"
+
+jobs:
+  verify:
+    name: Verify and build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+      - run: npm ci
+      - run: npx eslint .
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+      - run: npm run bundle:lambda
+      - uses: actions/upload-artifact@v4
+        with:
+          name: build-output
+          path: |
+            out
+            dist-lambda
+          retention-days: 1
+          include-hidden-files: true
+
+  deploy:
+    name: Deploy
+    needs: verify
+    runs-on: ubuntu-latest
+    # The approval gate. It is also what the OIDC trust policy pins `sub` to, so
+    # removing it does not just skip the prompt — it breaks the role.
+    environment: production
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+      # The image copies playwright, playwright-core and axe-core out of
+      # node_modules, so the Docker build context needs a real install. Artifacts
+      # are the wrong transport for that much of node_modules.
+      - run: npm ci
+      - uses: actions/download-artifact@v4
+        with:
+          name: build-output
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+          role-session-name: sitedoc-deploy-${{ github.run_id }}
+      - id: ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      # Before `terraform apply`, because the container functions reference the tag.
+      - name: Build and push the browser image
+        env:
+          REGISTRY: ${{ steps.ecr.outputs.registry }}
+        run: |
+          # The repository is IMMUTABLE, so a re-run of a failed deploy would fail
+          # on push. Skipping is also correct: the tag is the commit, so an
+          # existing image is already the right one.
+          if aws ecr describe-images --repository-name "$ECR_REPOSITORY" \
+               --image-ids imageTag="$GITHUB_SHA" >/dev/null 2>&1; then
+            echo "Image for $GITHUB_SHA already in ECR — reusing it."
+            exit 0
+          fi
+          IMAGE="$REGISTRY/$ECR_REPOSITORY:$GITHUB_SHA"
+          docker build -f Dockerfile.lambda -t "$IMAGE" .
+          docker push "$IMAGE"
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.11.4
+          # `terraform output -raw` must not be wrapped in the action's stdout
+          # decoration; later steps parse it.
+          terraform_wrapper: false
+
+      - name: Terraform apply
+        working-directory: infra
+        run: |
+          ACCOUNT=$(aws sts get-caller-identity --query Account --output text)
+          terraform init -backend-config="bucket=sitedoc-tfstate-$ACCOUNT"
+          terraform apply -auto-approve -var="image_tag=$GITHUB_SHA"
+
+      # After apply: the bucket has to exist first.
+      - name: Publish the static export
+        working-directory: infra
+        run: |
+          aws s3 sync ../out "s3://$(terraform output -raw frontend_bucket)" --delete
+
+      - name: Invalidate the CloudFront cache
+        working-directory: infra
+        run: |
+          aws cloudfront create-invalidation \
+            --distribution-id "$(terraform output -raw distribution_id)" \
+            --paths "/*"
+
+      - name: Smoke test the deployment
+        working-directory: infra
+        run: ../scripts/smoke-aws.sh "$(terraform output -raw base_url)"

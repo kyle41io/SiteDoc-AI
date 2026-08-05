@@ -1,0 +1,20 @@
+# BuildKit reads `<dockerfile>.dockerignore` in preference to `.dockerignore`,
+# which is what this file is for: the shared `.dockerignore` excludes
+# `node_modules`, but this image copies three packages out of it (playwright,
+# playwright-core, axe-core). Run `npm ci && npm run bundle:lambda` first.
+.git
+.github
+.data
+.next
+out
+src
+e2e
+scripts
+docs
+test-results
+playwright-report
+public/audit-artifacts
+node_modules/.cache
+.env*
+!.env.example
+*.log

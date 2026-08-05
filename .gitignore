@@ -18,6 +18,8 @@
 # next.js
 /.next/
 /out/
+# esbuild output for the Lambda bundles
+/dist-lambda/
 
 # production
 /build
@@ -39,6 +41,8 @@ yarn-error.log*
 # env files (can opt-in for committing if needed)
 .env*
 !.env.example
+# Committed on purpose: points the dev client at the local API host, no secrets.
+!.env.development
 .env
 
 # vercel
@@ -50,3 +54,19 @@ next-env.d.ts
 
 # superpowers visual brainstorm
 /.superpowers/
+
+# terraform — working directories, state and any variable file that could hold a
+# real value. `.terraform.lock.hcl` is committed on purpose so CI resolves the
+# same provider versions a human did.
+**/.terraform/*
+*.tfstate
+*.tfstate.*
+*.tfplan
+crash.log
+crash.*.log
+*.tfvars
+*.tfvars.json
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json

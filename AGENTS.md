@@ -39,15 +39,27 @@ The product should combine deterministic engineering checks with AI explanation.
 
 ## Technical Defaults
 
-- Framework: Next.js App Router.
+- Framework: Next.js App Router, built as a **static export** (`output: "export"`). There
+  are no route handlers and no server-side data fetching; the report page is client-rendered
+  behind an edge rewrite that preserves the `/report/{id}` URL.
 - Language: TypeScript.
 - Styling: Tailwind CSS.
-- Data: PostgreSQL with Prisma when persistence is added.
-- Scanner: Playwright running in a server/worker context.
-- Accessibility: axe-core injected into the scanned page.
-- AI: OpenAI API or Claude API behind a server-side abstraction.
-- Testing: lint, TypeScript build, focused unit tests, and Playwright E2E for critical flows.
-- Deployment target: Vercel for the web app; use a worker-friendly host if Playwright cannot run reliably in the web runtime.
+- Data: DynamoDB in production (`AUDIT_STORE=dynamo`), local JSON files in development —
+  both behind `AuditStore`. Screenshots go through `ArtifactStore` (local disk or S3).
+- Scanner: Playwright in a worker context — an SQS-triggered Lambda on the
+  `playwright:v1.60.0-jammy` image. That Chromium build is fixed: audit scores are
+  browser-dependent.
+- Accessibility: axe-core injected into the scanned page, resolved from `SITEDOC_AXE_DIR`.
+- AI: OpenAI API or Claude API behind a server-side abstraction; keys hydrated from SSM
+  Parameter Store when `SSM_PREFIX` is set, plain env vars otherwise.
+- Request handling: framework-free functions in `src/lib/api`, called by the Lambda
+  handlers in `lambda/` and by `scripts/local-server.ts` in development. Add API behavior
+  there, not in a Next route.
+- Testing: lint, TypeScript build, focused unit tests, and Playwright E2E for critical flows
+  (e2e runs against the built export via `npm run serve:local`).
+- Deployment target: S3 + CloudFront for the frontend, Lambda Function URLs behind the same
+  origin for the API, PDF renderer and scan worker. Design:
+  `docs/superpowers/specs/2026-08-05-aws-migration-design.md`.
 
 ## Engineering Standards
 
@@ -58,7 +70,7 @@ The product should combine deterministic engineering checks with AI explanation.
 - Update README when setup, architecture, deployment, or major capabilities change.
 - Update `AGENTS.md`, `CLAUDE.md`, relevant skills, or subagent descriptions when major project information changes or new project operating rules are introduced.
 - Prefer project skills over MCP when a task can be solved with skills alone. Use MCP for external state, repository/connector data, live services, or actions that skills cannot perform.
-- Access storage only through the `AuditStore` abstraction (`@/lib/store`). When the AI phase lands, access AI only through the provider abstraction (`@/lib/ai`, introduced then) with a deterministic fallback. Do not weaken the SSRF guard in `@/lib/url-validation`.
+- Access storage only through the `AuditStore` and `ArtifactStore` abstractions (`@/lib/store`), and background work only through `AuditDispatcher` (`@/lib/audit/dispatch`). Access AI only through the provider abstraction (`@/lib/ai`) with a deterministic fallback. Nothing in `src/lib` may import an AWS SDK except the three adapters. Do not weaken the SSRF guard in `@/lib/url-validation`.
 - The app is localized in 5 languages (en/vi/es/zh/ja). UI strings live in `src/i18n/dictionaries/` (typed against the `en` shape — keep all locales in sync); deterministic audit content lives in `src/lib/audit/audit-i18n.ts`. The audit `language` is threaded through the API and stored on the record; any user-facing content (including future AI feedback) must be produced in the page's current language.
 - After meaningful code changes, invoke the `code-reviewer` subagent or run an equivalent code-review pass before considering the task complete.
 - Verification gate before finishing a substantial change: `npm run lint`, `npm run typecheck`, `npm test`, `npm run build`.

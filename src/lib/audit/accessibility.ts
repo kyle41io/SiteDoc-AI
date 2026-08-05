@@ -22,7 +22,19 @@ export type AxeViolation = {
   nodes: AxeNode[];
 };
 
-const AXE_SCRIPT = path.join(process.cwd(), "node_modules", "axe-core", "axe.min.js");
+/**
+ * Directory holding the installed axe-core package. Overridable because the
+ * Lambda container copies only that one package to `/var/task`, and relying on
+ * `process.cwd()` there would be an accident rather than a contract.
+ *
+ * Read at call time, not at module load, so tests can vary it.
+ */
+export function axeDirectory(): string {
+  return (
+    process.env["SITEDOC_AXE_DIR"] ??
+    path.join(process.cwd(), "node_modules", "axe-core")
+  );
+}
 
 // App locale → axe-core locale file (only those axe-core ships; others stay English).
 const AXE_LOCALE_FILE: Record<string, string> = {
@@ -36,7 +48,7 @@ async function loadAxeLocale(language: string | undefined): Promise<unknown> {
   if (!file) return undefined;
   try {
     const raw = await readFile(
-      path.join(process.cwd(), "node_modules", "axe-core", "locales", file),
+      path.join(axeDirectory(), "locales", file),
       "utf8",
     );
     return JSON.parse(raw) as unknown;
@@ -65,7 +77,7 @@ export async function runAxe(
   language: string | undefined,
 ): Promise<AxeViolation[] | null> {
   try {
-    await page.addScriptTag({ path: AXE_SCRIPT });
+    await page.addScriptTag({ path: path.join(axeDirectory(), "axe.min.js") });
     const locale = await loadAxeLocale(language);
     const violations = await page.evaluate(async (loc) => {
       const axe = (window as unknown as { axe: AxeGlobal }).axe;

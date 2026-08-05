@@ -1,0 +1,47 @@
+# syntax=docker/dockerfile:1
+
+# Same Playwright base as the Render image: audit scores are browser-dependent,
+# so the deployed Chromium must be the build the test suite was written against.
+ARG PLAYWRIGHT_VERSION=v1.60.0-jammy
+
+# --- Builder: compile the Lambda Runtime Interface Client ------------------
+# `aws-lambda-ric` is a native module, so it needs a toolchain the runtime image
+# should not carry. It builds aws-lambda-cpp, which runs `autoreconf` and links
+# libcurl — hence autotools and the curl headers alongside cmake/g++/make.
+FROM mcr.microsoft.com/playwright:${PLAYWRIGHT_VERSION} AS ric-builder
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      autoconf automake libtool cmake g++ make python3 libcurl4-openssl-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /build
+RUN npm init -y && npm install aws-lambda-ric@3
+
+# --- Runtime --------------------------------------------------------------
+FROM mcr.microsoft.com/playwright:${PLAYWRIGHT_VERSION}
+
+ENV NODE_ENV=production \
+    AUDIT_STORE=dynamo \
+    SITEDOC_ARTIFACTS=s3 \
+    SITEDOC_AXE_DIR=/var/task/node_modules/axe-core
+
+WORKDIR /var/task
+
+COPY --from=ric-builder /build/node_modules ./node_modules
+
+# Playwright and axe-core resolve from disk at runtime, so they are copied
+# rather than bundled. axe-core is read from SITEDOC_AXE_DIR (see
+# src/lib/audit/accessibility.ts); Playwright needs to sit next to its browsers.
+COPY node_modules/playwright ./node_modules/playwright
+COPY node_modules/playwright-core ./node_modules/playwright-core
+COPY node_modules/axe-core ./node_modules/axe-core
+
+# Both handlers ship in one image; the Lambda's image_config.command picks one.
+COPY dist-lambda/scan/index.js ./scan.js
+COPY dist-lambda/pdf/index.js ./pdf.js
+
+# The RIC binary is invoked directly rather than through `npx`: it avoids a
+# package-manager process on every cold start, and this base image keeps `npx` in
+# /usr/bin, not /usr/local/bin.
+ENTRYPOINT ["/var/task/node_modules/.bin/aws-lambda-ric"]
+CMD ["scan.handler"]

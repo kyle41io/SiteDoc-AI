@@ -12,6 +12,11 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Generated Lambda bundles — minified esbuild output, not source.
+    "dist-lambda/**",
+    // CloudFront Functions runtime, not Node: `handler` is invoked by name from
+    // outside the file, so every rule about unused top-level bindings misfires.
+    "infra/**",
   ]),
 ]);
 

@@ -1,7 +1,5 @@
 import type { AuditRecord } from "@/lib/audit-types";
 import { auditStore } from "@/lib/store";
-import { runPlaywrightScan } from "@/lib/playwright-scanner";
-import { generateAiReport } from "@/lib/ai";
 import { auditStrings, type AuditStrings } from "@/lib/audit/audit-i18n";
 
 /** The unit of work the queue processes. */
@@ -122,27 +120,42 @@ export async function runAuditJob(job: AuditJob, deps: RunAuditDeps): Promise<vo
 
 // --- Production singleton ----------------------------------------------------
 
-const MAX_CONCURRENT_SCANS = Number(process.env.SITEDOC_MAX_CONCURRENT_SCANS) || 2;
-const queue = new ConcurrencyQueue(MAX_CONCURRENT_SCANS);
-
-const productionDeps: RunAuditDeps = {
+/**
+ * Playwright and the AI providers are imported lazily, inside the collaborators
+ * that use them. Only the scan worker ever runs these, and a static import would
+ * drag Chromium's driver and both AI SDKs into the interactive API bundle — the
+ * one request a user waits on.
+ */
+export const productionDeps: RunAuditDeps = {
   save: (record) => auditStore.save(record),
-  scan: (job) =>
-    runPlaywrightScan({
+  scan: async (job) => {
+    const { runPlaywrightScan } = await import("@/lib/playwright-scanner");
+
+    return runPlaywrightScan({
       auditId: job.auditId,
       url: job.url,
       startedAt: job.startedAt,
       language: job.language,
-    }),
+    });
+  },
   // AI enrichment is non-blocking and never throws (falls back deterministically).
-  enrich: async (record) => ({ ...record, ai: await generateAiReport(record) }),
+  enrich: async (record) => {
+    const { generateAiReport } = await import("@/lib/ai");
+
+    return { ...record, ai: await generateAiReport(record) };
+  },
   now: () => new Date().toISOString(),
 };
 
 /**
- * Enqueue an audit to run in the background. Returns immediately; the job's
- * progress is observed by polling the audit record via the store.
+ * Enqueue an audit to run in the background. Returns once the job is accepted,
+ * not once it finishes; progress is observed by polling the audit record.
+ *
+ * The import is dynamic to break the cycle: `dispatch` imports `productionDeps`
+ * from this module. A static import here is a circular-import bug that only
+ * shows up at runtime.
  */
-export function enqueueAudit(job: AuditJob): void {
-  queue.add(() => runAuditJob(job, productionDeps));
+export async function enqueueAudit(job: AuditJob): Promise<void> {
+  const { auditDispatcher } = await import("@/lib/audit/dispatch");
+  await auditDispatcher.dispatch(job);
 }
