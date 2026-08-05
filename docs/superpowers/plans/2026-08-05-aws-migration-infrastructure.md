@@ -2091,10 +2091,14 @@ before `s3 sync`; the invalidation needs the distribution id.
 
 - [ ] **Step 2: Lint it**
 
+  The release assets carry the version in their filename, so `latest/download/` does not
+  resolve to one:
+
   ```bash
-  curl -sSL https://github.com/rhysd/actionlint/releases/latest/download/actionlint_linux_amd64.tar.gz \
+  V=$(curl -sS https://api.github.com/repos/rhysd/actionlint/releases/latest | jq -r .tag_name | tr -d v)
+  curl -sSL "https://github.com/rhysd/actionlint/releases/download/v$V/actionlint_${V}_linux_amd64.tar.gz" \
     | tar xz -C /tmp actionlint
-  /tmp/actionlint .github/workflows/aws-deploy.yml
+  /tmp/actionlint .github/workflows/aws-deploy.yml .github/workflows/ci.yml
   ```
   Expected: no output.
 
