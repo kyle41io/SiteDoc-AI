@@ -1,4 +1,5 @@
 import type { ArtifactStore } from "@/lib/store/artifact-types";
+import { DynamoAuditStore } from "@/lib/store/dynamo-store";
 import { LocalArtifactStore } from "@/lib/store/local-artifact-store";
 import { LocalAuditStore } from "@/lib/store/local-store";
 import type { AuditStore } from "@/lib/store/types";
@@ -15,10 +16,15 @@ export const artifactStore: ArtifactStore = new LocalArtifactStore();
 /**
  * The active audit store. Defaults to the local filesystem JSON store (no
  * native deps in dev/tests); `AUDIT_STORE=dynamo` selects DynamoDB for the
- * deployed functions (wired with the Dynamo implementation).
+ * deployed functions.
  *
- * The selection is read with bracket access so Next's bundler does NOT inline
- * it at build time — dot access gets statically replaced with the build-time
- * value, which would freeze the selection. We need the runtime value.
+ * Bracket access so Next's bundler does NOT inline this at build time — dot
+ * access gets statically replaced with the build-time value, which would freeze
+ * the selection. We need the runtime value.
  */
-export const auditStore: AuditStore = new LocalAuditStore();
+const storeKind = process.env["AUDIT_STORE"];
+
+export const auditStore: AuditStore =
+  storeKind === "dynamo"
+    ? new DynamoAuditStore({ tableName: process.env["SITEDOC_TABLE"] ?? "sitedoc_audits" })
+    : new LocalAuditStore();
