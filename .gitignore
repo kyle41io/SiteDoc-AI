@@ -18,6 +18,8 @@
 # next.js
 /.next/
 /out/
+# esbuild output for the Lambda bundles
+/dist-lambda/
 
 # production
 /build

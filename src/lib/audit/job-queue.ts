@@ -1,7 +1,5 @@
 import type { AuditRecord } from "@/lib/audit-types";
 import { auditStore } from "@/lib/store";
-import { runPlaywrightScan } from "@/lib/playwright-scanner";
-import { generateAiReport } from "@/lib/ai";
 import { auditStrings, type AuditStrings } from "@/lib/audit/audit-i18n";
 
 /** The unit of work the queue processes. */
@@ -122,17 +120,30 @@ export async function runAuditJob(job: AuditJob, deps: RunAuditDeps): Promise<vo
 
 // --- Production singleton ----------------------------------------------------
 
+/**
+ * Playwright and the AI providers are imported lazily, inside the collaborators
+ * that use them. Only the scan worker ever runs these, and a static import would
+ * drag Chromium's driver and both AI SDKs into the interactive API bundle — the
+ * one request a user waits on.
+ */
 export const productionDeps: RunAuditDeps = {
   save: (record) => auditStore.save(record),
-  scan: (job) =>
-    runPlaywrightScan({
+  scan: async (job) => {
+    const { runPlaywrightScan } = await import("@/lib/playwright-scanner");
+
+    return runPlaywrightScan({
       auditId: job.auditId,
       url: job.url,
       startedAt: job.startedAt,
       language: job.language,
-    }),
+    });
+  },
   // AI enrichment is non-blocking and never throws (falls back deterministically).
-  enrich: async (record) => ({ ...record, ai: await generateAiReport(record) }),
+  enrich: async (record) => {
+    const { generateAiReport } = await import("@/lib/ai");
+
+    return { ...record, ai: await generateAiReport(record) };
+  },
   now: () => new Date().toISOString(),
 };
 

@@ -7,6 +7,7 @@
     "dev:api": "PORT=4000 tsx watch scripts/local-server.ts",
     "serve:local": "tsx scripts/local-server.ts --static out --port 3000",
     "build": "next build",
+    "bundle:lambda": "node esbuild.config.mjs",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
