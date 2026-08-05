@@ -2,6 +2,7 @@
 
 import { FormEvent, useId, useRef, useState } from "react";
 import type { AuditRecord } from "@/lib/audit-types";
+import { apiUrl } from "@/lib/api-base";
 import { cn } from "@/lib/cn";
 import { useI18n } from "@/i18n/provider";
 import { FitText } from "@/components/ui/FitText";
@@ -89,13 +90,16 @@ function scrollTo(el: HTMLElement | null, block: ScrollLogicalPosition) {
  * a `queued` record immediately and the scan runs in the background, so the UI
  * watches `GET ?id=` for `completed`/`failed`. Transient blips (server restart,
  * non-JSON) are tolerated; gives up after `timeoutMs`.
+ *
+ * 180s rather than 120s: a cold scan worker pulls its container image before it
+ * starts, and giving up on a scan that is still running is worse than waiting.
  */
-async function pollAudit(id: string, timeoutMs = 120_000): Promise<AuditRecord> {
+async function pollAudit(id: string, timeoutMs = 180_000): Promise<AuditRecord> {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
     await wait(1500);
     try {
-      const res = await fetch(`/api/audits?id=${encodeURIComponent(id)}`);
+      const res = await fetch(apiUrl(`/api/audits?id=${encodeURIComponent(id)}`));
       const isJson = (res.headers.get("content-type") ?? "").includes("application/json");
       if (res.ok && isJson) {
         const record = (await res.json()) as AuditRecord;
@@ -117,7 +121,7 @@ async function pollAudit(id: string, timeoutMs = 120_000): Promise<AuditRecord> 
 async function postAudit(body: { url: string; language: string }, attempts = 3) {
   for (let attempt = 1; ; attempt += 1) {
     try {
-      const response = await fetch("/api/audits", {
+      const response = await fetch(apiUrl("/api/audits"), {
         body: JSON.stringify(body),
         headers: { "Content-Type": "application/json" },
         method: "POST",
