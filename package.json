@@ -12,7 +12,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "smoke:aws": "scripts/smoke-aws.sh"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.104.1",

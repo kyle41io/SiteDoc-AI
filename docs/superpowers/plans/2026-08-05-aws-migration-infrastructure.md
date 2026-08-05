@@ -2029,6 +2029,14 @@ before `s3 sync`; the invalidation needs the distribution id.
           env:
             REGISTRY: ${{ steps.ecr.outputs.registry }}
           run: |
+            # The repository is IMMUTABLE, so a re-run of a failed deploy would
+            # fail on push. Skipping is also correct: the tag is the commit, so
+            # an existing image is already the right one.
+            if aws ecr describe-images --repository-name "$ECR_REPOSITORY" \
+                 --image-ids imageTag="$GITHUB_SHA" >/dev/null 2>&1; then
+              echo "Image for $GITHUB_SHA already in ECR — reusing it."
+              exit 0
+            fi
             IMAGE="$REGISTRY/$ECR_REPOSITORY:$GITHUB_SHA"
             docker build -f Dockerfile.lambda -t "$IMAGE" .
             docker push "$IMAGE"
@@ -2131,7 +2139,7 @@ Two settings in the repository. Without them the workflow fails at
 - [ ] **Step 3: Confirm the trust relationship reads as expected**
 
   ```bash
-  aws iam get-role --role-name sitedoc-github-deploy \
+  aws iam get-role --role-name sitedoc-deploy \
     --query 'Role.AssumeRolePolicyDocument' --profile sitedoc-bootstrap
   ```
   Expected: `token.actions.githubusercontent.com:sub` equal to
@@ -2274,23 +2282,36 @@ This covers the machine-checkable half of the spec §8 parity table. The half th
   "smoke:aws": "scripts/smoke-aws.sh"
   ```
 
-- [ ] **Step 3: Prove it fails cleanly before it can pass**
-
-  There is nothing deployed yet, so the only local check is that it exits non-zero with a
-  readable message rather than a stack of bash errors:
+- [ ] **Step 3: Prove it fails cleanly**
 
   ```bash
   bash -n scripts/smoke-aws.sh                     # syntax
   ./scripts/smoke-aws.sh 2>&1; echo "exit=$?"      # usage
   ./scripts/smoke-aws.sh http://127.0.0.1:1 2>&1 | tail -2
   ```
-  Expected: `exit=2` for no argument; a `FAIL: GET / did not return 200` (or a curl
-  connection error) for an unreachable base. Also run `shellcheck scripts/smoke-aws.sh` if
-  available; warnings about `$SECONDS` arithmetic are expected and fine.
+  Expected: `exit=2` for no argument; a `FAIL: GET / did not return 200` for an unreachable
+  base. Also run `shellcheck scripts/smoke-aws.sh` if available; warnings about `$SECONDS`
+  arithmetic are expected and fine.
 
-  It runs for real against the deployed URL in Task 14.
+- [ ] **Step 4: Prove it passes, before any AWS exists**
 
-- [ ] **Step 4: Commit**
+  `npm run serve:local` implements the same routing table CloudFront will, so the whole
+  script can be exercised locally against a real scan:
+
+  ```bash
+  npm run build
+  npm run serve:local &                       # port 3000
+  SMOKE_TIMEOUT_S=150 ./scripts/smoke-aws.sh http://localhost:3000
+  kill %1
+  ```
+  Expected: every check `ok` and `PASS`. This is what makes a failure against the deployed
+  URL in Task 14 meaningful — it points at the infrastructure rather than at the script.
+
+  The one behavior it cannot cover locally is the `/artifacts/` → `/audits/` key rewrite,
+  which only exists in the CloudFront Function; locally the artifact store serves that path
+  directly.
+
+- [ ] **Step 5: Commit**
 
   ```bash
   git add scripts/smoke-aws.sh package.json
