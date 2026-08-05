@@ -2,6 +2,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const page = {
+  addInitScript: vi.fn().mockResolvedValue(undefined),
   emulateMedia: vi.fn().mockResolvedValue(undefined),
   goto: vi.fn().mockResolvedValue(undefined),
   waitForSelector: vi.fn().mockResolvedValue(undefined),

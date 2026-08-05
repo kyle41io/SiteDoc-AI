@@ -1,6 +1,6 @@
 import { mkdir } from "node:fs/promises";
 import path from "node:path";
-import { CHROMIUM_LAUNCH_OPTIONS } from "@/lib/chromium";
+import { CHROMIUM_LAUNCH_OPTIONS, shimEvaluateHelpers } from "@/lib/chromium";
 import { chromium, type Browser, type BrowserContext, type Page } from "playwright";
 import type {
   AuditIssue,
@@ -234,6 +234,7 @@ async function captureViewport(
   try {
     context = await createGuardedContext(browser, viewport);
     const page = await context.newPage();
+    await shimEvaluateHelpers(page);
 
     if (observers) {
       bindPageObservers(page, observers.consoleErrors, observers.failedRequests);

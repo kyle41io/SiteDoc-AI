@@ -1,7 +1,7 @@
 import { chromium } from "playwright";
 import { auditStore } from "@/lib/store";
 import { isAuditId } from "@/lib/audit/id";
-import { CHROMIUM_LAUNCH_OPTIONS } from "@/lib/chromium";
+import { CHROMIUM_LAUNCH_OPTIONS, shimEvaluateHelpers } from "@/lib/chromium";
 
 /**
  * A4 at 96dpi in CSS pixels, and the margin used below. Chromium lays the
@@ -51,6 +51,7 @@ export async function renderReportPdf(input: {
     const page = await browser.newPage({
       viewport: { width: PDF_WIDTH_PX, height: 1123 },
     });
+    await shimEvaluateHelpers(page);
     await page.emulateMedia({ media: "screen" });
     await page.goto(target, { waitUntil: "networkidle", timeout: 45_000 });
 
