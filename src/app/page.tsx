@@ -3,6 +3,7 @@
 import { FormEvent, useId, useRef, useState } from "react";
 import type { AuditRecord } from "@/lib/audit-types";
 import { apiUrl } from "@/lib/api-base";
+import { payloadSha256 } from "@/lib/payload-hash";
 import { cn } from "@/lib/cn";
 import { useI18n } from "@/i18n/provider";
 import { FitText } from "@/components/ui/FitText";
@@ -121,9 +122,15 @@ async function pollAudit(id: string, timeoutMs = 180_000): Promise<AuditRecord> 
 async function postAudit(body: { url: string; language: string }, attempts = 3) {
   for (let attempt = 1; ; attempt += 1) {
     try {
+      const payload = JSON.stringify(body);
       const response = await fetch(apiUrl("/api/audits"), {
-        body: JSON.stringify(body),
-        headers: { "Content-Type": "application/json" },
+        body: payload,
+        headers: {
+          "Content-Type": "application/json",
+          // Required by CloudFront's SigV4 signing of the Lambda origin; see
+          // `payloadSha256`. Omitting it turns every audit request into a 404.
+          "x-amz-content-sha256": await payloadSha256(payload),
+        },
         method: "POST",
       });
       const data = await readAuditResponse(response);
