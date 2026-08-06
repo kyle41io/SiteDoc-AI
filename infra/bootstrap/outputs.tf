@@ -1,5 +1,5 @@
 output "deploy_role_arn" {
-  description = "Set as the AWS_ROLE_ARN variable on the GitHub production environment."
+  description = "Set as the AWS_ROLE_ARN variable on the GitHub aws-production environment."
   value       = aws_iam_role.deploy.arn
 }
 
