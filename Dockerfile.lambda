@@ -20,7 +20,16 @@ RUN npm init -y && npm install aws-lambda-ric@3
 # --- Runtime --------------------------------------------------------------
 FROM mcr.microsoft.com/playwright:${PLAYWRIGHT_VERSION}
 
+# HOME=/tmp because everything else in a Lambda container is read-only and
+# neither this image nor the Lambda runtime sets HOME at all — so Chromium
+# resolves root's home from /etc/passwd, tries to write its caches and profile
+# scaffolding into a read-only /root, and dies at the first page rather than at
+# launch. /tmp is the one writable path (512 MB, shared with the screenshot
+# staging directory, which needs a few MB). Safe only because the base image
+# pins PLAYWRIGHT_BROWSERS_PATH=/ms-playwright: browser resolution does not
+# fall back to $HOME/.cache/ms-playwright here.
 ENV NODE_ENV=production \
+    HOME=/tmp \
     AUDIT_STORE=dynamo \
     SITEDOC_ARTIFACTS=s3 \
     SITEDOC_AXE_DIR=/var/task/node_modules/axe-core
