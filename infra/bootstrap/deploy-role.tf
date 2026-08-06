@@ -1,8 +1,10 @@
 # Trust policy. Two details that cost real debugging time if wrong:
 #  - `sub` is pinned to the *environment* form. GitHub swaps the claim to
-#    `repo:owner/name:environment:production` when a job declares `environment:`,
-#    and matching only that form is what stops a future workflow from assuming
-#    this role straight off `main` and skipping the approval gate.
+#    `repo:owner/name:environment:<name>` when a job declares `environment:`, and
+#    matching only that form is what stops a future workflow from assuming this
+#    role straight off `main` and skipping the approval gate. The name is
+#    case-sensitive here and not case-sensitive on GitHub's side — see
+#    `var.deploy_environment` for why that matters.
 #  - `aud` must be checked too, or any GitHub workflow anywhere could present a
 #    token minted for a different audience.
 data "aws_iam_policy_document" "deploy_trust" {
@@ -24,7 +26,7 @@ data "aws_iam_policy_document" "deploy_trust" {
     condition {
       test     = "StringEquals"
       variable = "token.actions.githubusercontent.com:sub"
-      values   = ["repo:${var.github_repo}:environment:production"]
+      values   = ["repo:${var.github_repo}:environment:${var.deploy_environment}"]
     }
   }
 }

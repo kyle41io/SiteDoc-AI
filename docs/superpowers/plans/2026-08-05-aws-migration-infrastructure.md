@@ -55,7 +55,7 @@ include this section.
 - **No long-lived AWS credentials in GitHub.** The workflow exchanges an OIDC token via
   `sts:AssumeRoleWithWebIdentity`.
 - **The OIDC trust policy pins `sub` to the environment form**
-  `repo:kyle41io/SiteDoc-AI:environment:production`, not to a branch — that is what makes
+  `repo:kyle41io/SiteDoc-AI:environment:aws-production`, not to a branch — that is what makes
   the manual approval gate load-bearing.
 - **`AWS_REGION` is never set as a user environment variable** on a Lambda; it is reserved
   and injected by the runtime.
@@ -252,6 +252,14 @@ credential; after that every deploy is keyless.
     default     = "kyle41io/SiteDoc-AI"
   }
 
+  # Deliberately not "production" — see Task 12 Step 1 for what that collides
+  # with. Named here so the workflow and the trust policy cannot drift apart.
+  variable "deploy_environment" {
+    description = "GitHub environment whose approval gates AWS deploys. Must match aws-deploy.yml."
+    type        = string
+    default     = "aws-production"
+  }
+
   data "aws_caller_identity" "current" {}
   ```
 
@@ -353,7 +361,7 @@ credential; after that every deploy is keyless.
   ```hcl
   # Trust policy. Two details that cost real debugging time if wrong:
   #  - `sub` is pinned to the *environment* form. GitHub swaps the claim to
-  #    `repo:owner/name:environment:production` when a job declares
+  #    `repo:owner/name:environment:<name>` when a job declares
   #    `environment:`, and matching only that form is what stops a future
   #    workflow from assuming this role straight off `main` and skipping the
   #    approval gate.
@@ -378,7 +386,7 @@ credential; after that every deploy is keyless.
       condition {
         test     = "StringEquals"
         variable = "token.actions.githubusercontent.com:sub"
-        values   = ["repo:${var.github_repo}:environment:production"]
+        values   = ["repo:${var.github_repo}:environment:${var.deploy_environment}"]
       }
     }
   }
@@ -2016,8 +2024,12 @@ before `s3 sync`; the invalidation needs the distribution id.
       needs: verify
       runs-on: ubuntu-latest
       # The approval gate. It is also what the OIDC trust policy pins `sub` to,
-      # so removing it does not just skip the prompt — it breaks the role.
-      environment: production
+      # so renaming it does not just move the prompt — it breaks the role.
+      #
+      # NOT `production`: GitHub matches environment names case-insensitively,
+      # and the Vercel integration already owns one called `Production` with no
+      # protection rules.
+      environment: aws-production
       permissions:
         contents: read
         id-token: write
@@ -2034,7 +2046,19 @@ before `s3 sync`; the invalidation needs the distribution id.
           with:
             name: build-output
 
-        - uses: aws-actions/configure-aws-credentials@v4
+        # Without this, an unset AWS_ROLE_ARN surfaces as "Could not load
+        # credentials from any providers", which reads like a broken workflow
+        # rather than a missing setting.
+        - name: Check the deploy role is configured
+          run: |
+            if [ -z "${{ vars.AWS_ROLE_ARN }}" ]; then
+              echo "::error::AWS_ROLE_ARN is not set on the aws-production environment."
+              echo "Apply infra/bootstrap first (plan task 9), then add its deploy_role_arn"
+              echo "output as an environment variable on aws-production (plan task 12)."
+              exit 1
+            fi
+
+        - uses: aws-actions/configure-aws-credentials@v6
           with:
             role-to-assume: ${{ vars.AWS_ROLE_ARN }}
             aws-region: ${{ env.AWS_REGION }}
@@ -2136,14 +2160,31 @@ before `s3 sync`; the invalidation needs the distribution id.
 Two settings in the repository. Without them the workflow fails at
 `configure-aws-credentials` with `Could not load credentials from any providers`.
 
-- [ ] **Step 1: Create the `production` environment**
+- [ ] **Step 1: Create the `aws-production` environment**
 
-  Settings → Environments → **New environment** → name it exactly `production` (the OIDC
-  `sub` condition is `repo:kyle41io/SiteDoc-AI:environment:production`; a different name
+  Settings → Environments → **New environment** → name it exactly `aws-production` (the OIDC
+  `sub` condition is `repo:kyle41io/SiteDoc-AI:environment:aws-production`; a different name
   means every deploy is denied by the trust policy).
 
+  **Not `production`.** This was learned the hard way on the first run: GitHub matches
+  environment names case-insensitively, and the Vercel integration already owns an
+  environment called `Production` with no protection rules. `environment: production`
+  silently attached to Vercel's, so the deploy job ran with **no approval at all**, and the
+  `sub` claim would have read `:environment:Production` — which IAM's case-sensitive
+  `StringEquals` rejects. Check the list before creating:
+
+  ```bash
+  gh api repos/kyle41io/SiteDoc-AI/environments -q '.environments[].name'
+  ```
+
   Add **Required reviewers** → yourself. That is the approval gate; without a reviewer the
-  environment adds nothing.
+  environment adds nothing. Verify it took:
+
+  ```bash
+  gh api repos/kyle41io/SiteDoc-AI/environments/aws-production \
+    -q '{name, protection: [.protection_rules[].type]}'
+  ```
+  Expected: `required_reviewers` in the list. An empty list means there is no gate.
 
   Optionally restrict deployment branches to `main`.
 
@@ -2155,6 +2196,10 @@ Two settings in the repository. Without them the workflow fails at
   |---|---|
   | `AWS_ROLE_ARN` | the `deploy_role_arn` output from Task 9 Step 3 |
 
+  A repository-level variable will **not** do: the deploy job reads the environment's
+  variables, and a repo variable of the same name is shadowed by the environment scope
+  being empty.
+
   A **variable**, not a secret.
 
 - [ ] **Step 3: Confirm the trust relationship reads as expected**
@@ -2164,7 +2209,7 @@ Two settings in the repository. Without them the workflow fails at
     --query 'Role.AssumeRolePolicyDocument' --profile sitedoc-bootstrap
   ```
   Expected: `token.actions.githubusercontent.com:sub` equal to
-  `repo:kyle41io/SiteDoc-AI:environment:production` and `:aud` equal to
+  `repo:kyle41io/SiteDoc-AI:environment:aws-production` and `:aud` equal to
   `sts.amazonaws.com`. If `sub` is a branch form, fix Task 2 and re-apply — a branch-pinned
   role can be assumed by any workflow on that branch, approval or not.
 
@@ -2363,7 +2408,8 @@ Task 10 deployed by hand. This proves the pipeline can do it keylessly.
     match. Compare it against the run's actual claim; the environment name is the usual
     culprit (Task 12 Step 1).
   - `Could not load credentials from any providers` → `vars.AWS_ROLE_ARN` is unset, or was
-    added as a repository variable instead of an environment variable.
+    added as a repository variable instead of an environment variable. The workflow now
+    fails one step earlier with an explicit message, so this form should no longer appear.
 
 - [ ] **Step 3: Confirm the run is a no-op for infrastructure but a real image push**
 
@@ -2488,7 +2534,7 @@ which is why it is last (spec §9).
   Infrastructure is Terraform in `infra/` (applied by CI) and `infra/bootstrap/` (applied
   once by hand: state bucket, GitHub OIDC provider, deploy role, ECR repository).
   `.github/workflows/aws-deploy.yml` deploys on merge to `main` — verify, then a manual
-  approval on the `production` environment, then OIDC into AWS, push the browser image to
+  approval on the `aws-production` environment, then OIDC into AWS, push the browser image to
   ECR, `terraform apply`, sync `out/` to S3, invalidate CloudFront, and run
   `scripts/smoke-aws.sh` against the live URL. There are no long-lived AWS credentials in
   GitHub. Secrets live in SSM Parameter Store and are set with `aws ssm put-parameter`;
@@ -2510,7 +2556,7 @@ which is why it is last (spec §9).
   - Infrastructure: Terraform, `infra/` + `infra/bootstrap/`. No AWS resource is created by
     hand. Secrets are SSM parameters whose values Terraform never sees. Deploys run from
     `.github/workflows/aws-deploy.yml` via GitHub OIDC behind a manual approval on the
-    `production` environment.
+    `aws-production` environment.
   ```
 
 - [ ] **Step 4: Delete the Render deploy artifacts**
@@ -2581,7 +2627,8 @@ Run this before declaring the plan complete.
 - [ ] **No AWS credential in GitHub.** Settings → Secrets: no `AWS_ACCESS_KEY_ID`. The only
       AWS-related entry is the `AWS_ROLE_ARN` *variable*.
 - [ ] **The approval gate cannot be bypassed.** The trust policy's `sub` is the environment
-      form, and the `production` environment has a required reviewer.
+      form, and the `aws-production` environment has a required reviewer (not Vercel's
+      `Production`, which GitHub matches case-insensitively and which has no rules).
 - [ ] **Both bucket policies condition on `AWS:SourceArn`** for this distribution only.
 - [ ] **Retention is set everywhere it was promised:** DynamoDB TTL 30 days, artifacts
       lifecycle 30 days, all three log groups 14 days.
