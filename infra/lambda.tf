@@ -134,6 +134,15 @@ resource "aws_lambda_function_url" "pdf" {
   authorization_type = "AWS_IAM"
 }
 
+# OAC needs BOTH permissions, which is not obvious and fails silently-ish when
+# half-done: with only `lambda:InvokeFunctionUrl`, every signed origin request is
+# refused before the function runs, and because CloudFront maps origin 403s to
+# /404.html the symptom is a plain 404 with no log line anywhere. The AWS docs for
+# restricting a function URL to CloudFront list two separate `add-permission`
+# calls for exactly this reason.
+#
+# Confirmed empirically: adding `lambda:InvokeFunction` turned a masked 404 into a
+# real 400 from the handler.
 resource "aws_lambda_permission" "api_from_cloudfront" {
   statement_id           = "AllowCloudFrontInvokeUrl"
   action                 = "lambda:InvokeFunctionUrl"
@@ -143,6 +152,14 @@ resource "aws_lambda_permission" "api_from_cloudfront" {
   function_url_auth_type = "AWS_IAM"
 }
 
+resource "aws_lambda_permission" "api_invoke_from_cloudfront" {
+  statement_id  = "AllowCloudFrontInvokeFunction"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.api.function_name
+  principal     = "cloudfront.amazonaws.com"
+  source_arn    = aws_cloudfront_distribution.main.arn
+}
+
 resource "aws_lambda_permission" "pdf_from_cloudfront" {
   statement_id           = "AllowCloudFrontInvokeUrl"
   action                 = "lambda:InvokeFunctionUrl"
@@ -150,4 +167,12 @@ resource "aws_lambda_permission" "pdf_from_cloudfront" {
   principal              = "cloudfront.amazonaws.com"
   source_arn             = aws_cloudfront_distribution.main.arn
   function_url_auth_type = "AWS_IAM"
+}
+
+resource "aws_lambda_permission" "pdf_invoke_from_cloudfront" {
+  statement_id  = "AllowCloudFrontInvokeFunction"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.pdf.function_name
+  principal     = "cloudfront.amazonaws.com"
+  source_arn    = aws_cloudfront_distribution.main.arn
 }
