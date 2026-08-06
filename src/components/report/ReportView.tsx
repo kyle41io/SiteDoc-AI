@@ -375,11 +375,8 @@ export function ReportView({ report, t, isRunning = false, fallbackUrl, actions,
       <PopCard className="overflow-hidden p-5" tone="panel">
         <div className="flex flex-col gap-6 lg:flex-row lg:items-center">
           <div className="flex min-w-0 flex-col items-center gap-5 sm:flex-row lg:max-w-[46%]">
-            {/* The orb sits in an inked porthole so it reads as a sticker. */}
-            <div
-              className="pop relative flex h-44 w-44 shrink-0 items-center justify-center overflow-hidden rounded-full sm:h-52 sm:w-52"
-              style={{ backgroundColor: "var(--hero-bg)" }}
-            >
+            {/* No porthole: every planet sticker carries its own inked outline. */}
+            <div className="relative flex h-44 w-44 shrink-0 items-center justify-center sm:h-52 sm:w-52">
               {tier && isCompleted ? (
                 <PlanetGrade label={t.celestial[tier]} tier={tier} />
               ) : (

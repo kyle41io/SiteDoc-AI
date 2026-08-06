@@ -28,6 +28,30 @@ const CONTENT_TYPES: Record<string, string> = {
   ".txt": "text/plain; charset=utf-8",
 };
 
+/**
+ * Development-only CORS.
+ *
+ * Deployed, the static shell and the API share one CloudFront origin: `fetch`
+ * uses relative URLs, the browser never preflights, and CloudFront sends no
+ * CORS headers. Locally they cannot share an origin — the app is a static
+ * export, so `next dev` has no rewrites to proxy :3000 → :4000 — and the
+ * `x-amz-content-sha256` header the client must send makes every audit call a
+ * preflighted one. Without this the preflight 404s and the browser reports the
+ * blocked request as "Failed to fetch".
+ *
+ * This is the one place the stand-in deliberately does *not* mirror CloudFront,
+ * so it stays narrow: only loopback origins are echoed back.
+ */
+const LOOPBACK_ORIGIN = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/;
+
+function applyCors(req: http.IncomingMessage, res: http.ServerResponse) {
+  const origin = req.headers.origin;
+  if (!origin || !LOOPBACK_ORIGIN.test(origin)) return;
+
+  res.setHeader("access-control-allow-origin", origin);
+  res.setHeader("vary", "origin");
+}
+
 function sendJson(res: http.ServerResponse, status: number, body: unknown) {
   const payload = JSON.stringify(body);
   res.writeHead(status, {
@@ -63,6 +87,17 @@ export function createLocalServer(options: { staticDir?: string }): http.Server 
   return http.createServer(async (req, res) => {
     const url = new URL(req.url ?? "/", "http://localhost");
     const { pathname } = url;
+
+    applyCors(req, res);
+
+    // The preflight has no body and never reaches a route.
+    if (req.method === "OPTIONS") {
+      res.setHeader("access-control-allow-methods", "GET, POST, OPTIONS");
+      res.setHeader("access-control-allow-headers", "content-type, x-amz-content-sha256");
+      res.setHeader("access-control-max-age", "600");
+      res.writeHead(204);
+      return res.end();
+    }
 
     try {
       if (pathname === "/api/audits" && req.method === "POST") {

@@ -89,7 +89,7 @@ export function WaveEdge({
   );
 }
 
-/** Rotated circular sticker badge — the brand mark and hero call-outs. */
+/** Rotated circular sticker badge — hero call-outs and the 404 badge. */
 export function Sticker({
   children,
   className,

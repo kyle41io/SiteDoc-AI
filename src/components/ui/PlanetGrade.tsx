@@ -8,6 +8,10 @@ import { cn } from "@/lib/cn";
  * A plain <img> rather than WebGL so it renders identically on screen and on
  * paper — the PDF export prints the same artwork, and there is no canvas to fail
  * on a constrained host.
+ *
+ * The planets are transparent cutouts that already carry their own inked edge,
+ * so they hang free at full size. Only the galaxy needs a frame: it is an opaque
+ * rectangular photo, and without the round clip it prints as a bare square.
  */
 export function PlanetGrade({
   tier,
@@ -25,7 +29,9 @@ export function PlanetGrade({
     <img
       alt={label}
       className={cn(
-        full ? "h-full w-full object-cover" : "h-[95%] w-[95%] object-contain",
+        full
+          ? "pop h-full w-full rounded-full object-cover"
+          : "h-full w-full object-contain",
         className,
       )}
       src={PLANET_SPRITE[tier]}
@@ -34,25 +40,21 @@ export function PlanetGrade({
 }
 
 /**
- * Placeholder porthole shown before a scan has produced a score.
+ * Placeholder orb shown before a scan has produced a score.
  *
- * Drawn in `--hero-muted`, which flips with the theme: the porthole behind it
- * is `--hero-bg`, so a fixed colour fails contrast in one theme or the other
- * (cream reaches only 2.6:1 on the light sky, ink 1.9:1 on the dark one).
+ * Drawn in `--ink-soft` now that it sits on the card panel rather than on the
+ * hero sky, so it stays legible in both themes without a fill behind it.
  */
 export function PlanetGradeEmpty({ className }: { className?: string }) {
   return (
     <span
       aria-hidden
       className={cn(
-        "flex h-[70%] w-[70%] items-center justify-center rounded-full border-[3px] border-dashed",
+        "flex h-[80%] w-[80%] items-center justify-center rounded-full border-[3px] border-dashed border-ink-soft text-ink-soft",
         className,
       )}
-      style={{ borderColor: "var(--hero-muted)" }}
     >
-      <span className="font-display text-4xl leading-none" style={{ color: "var(--hero-muted)" }}>
-        --
-      </span>
+      <span className="font-display text-4xl leading-none">--</span>
     </span>
   );
 }

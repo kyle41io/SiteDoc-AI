@@ -6,6 +6,7 @@ import { apiUrl } from "@/lib/api-base";
 import { payloadSha256 } from "@/lib/payload-hash";
 import { cn } from "@/lib/cn";
 import { useI18n } from "@/i18n/provider";
+import { BrandMark } from "@/components/ui/BrandMark";
 import { FitText } from "@/components/ui/FitText";
 import { PopCard } from "@/components/ui/PopCard";
 import { Sticker, Ticker, WaveEdge } from "@/components/ui/decor";
@@ -263,9 +264,7 @@ export default function Home() {
       <div className="mx-auto w-full max-w-6xl px-4 sm:px-6">
         <header className="flex flex-wrap items-center justify-between gap-4 py-6">
           <div className="flex items-center gap-3">
-            <Sticker className="h-12 w-12 bg-lemon" tilt={-10}>
-              <span className="font-display text-lg leading-none text-on-bright">SD</span>
-            </Sticker>
+            <BrandMark className="h-12 w-12" tilt={-10} />
             <p className="font-display text-2xl uppercase leading-none tracking-tight text-ink">
               {t.brand}
             </p>

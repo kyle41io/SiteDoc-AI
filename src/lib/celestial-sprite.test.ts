@@ -27,7 +27,7 @@ describe("planet sprites", () => {
     expect(new Set(files).size).toBe(tiers.length);
   });
 
-  it("uses transparent PNGs for the planets so the porthole shows through", () => {
+  it("uses transparent PNGs for the planets so the card shows through", () => {
     for (const tier of tiers.filter((t) => !isFullBleed(t))) {
       expect(PLANET_SPRITE[tier]).toMatch(/\.png$/);
     }

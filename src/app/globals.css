@@ -46,11 +46,6 @@
   --hero-ray: #56bcf2;
   --hero-stroke: #14123a;
   --hero-fill: #fff9ee;
-  /* A quiet mark drawn straight onto `--hero-bg`, with no stroke to lift it
-     off the sky. Unlike `--hero-stroke`/`--hero-fill` — which are used as a
-     pair and so can both stay dark/light — this one has to flip with the
-     theme, because the sky goes from bright blue to deep navy. */
-  --hero-muted: #14123a;
 
   /* Semantic aliases (kept so utility strings read intent, not hue) */
   --accent: var(--sky-deep);
@@ -104,7 +99,6 @@
   --hero-ray: #1e679f;
   --hero-stroke: #05040f;
   --hero-fill: #fff4e2;
-  --hero-muted: #fff4e2;
 }
 
 /* ---------- Tailwind token bridge ----------
@@ -220,7 +214,7 @@ summary {
   cursor: not-allowed;
 }
 
-/* Rotated circular sticker, as seen on the hero and the brand mark. */
+/* Rotated circular sticker, as seen on the hero call-outs and the 404 badge. */
 .sticker {
   border: 3px solid var(--line);
   box-shadow: var(--pop-1);
@@ -439,7 +433,6 @@ summary {
     --hero-ray: #56bcf2;
     --hero-stroke: #14123a;
     --hero-fill: #fff9ee;
-    --hero-muted: #14123a;
   }
   * {
     -webkit-print-color-adjust: exact !important;

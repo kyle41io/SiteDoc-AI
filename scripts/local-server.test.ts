@@ -62,4 +62,37 @@ describe("local server", () => {
   it("404s an unknown path", async () => {
     expect((await fetch(`${base}/nope`)).status).toBe(404);
   });
+
+  // `next dev` serves the shell on another port, and the client sends
+  // `x-amz-content-sha256`, so every local audit call is preflighted.
+  it("answers the preflight the dev shell sends before an audit", async () => {
+    const res = await fetch(`${base}/api/audits`, {
+      method: "OPTIONS",
+      headers: {
+        origin: "http://localhost:3000",
+        "access-control-request-method": "POST",
+        "access-control-request-headers": "content-type, x-amz-content-sha256",
+      },
+    });
+
+    expect(res.status).toBe(204);
+    expect(res.headers.get("access-control-allow-origin")).toBe("http://localhost:3000");
+    expect(res.headers.get("access-control-allow-headers")).toContain("x-amz-content-sha256");
+  });
+
+  it("lets the dev shell read the audit response", async () => {
+    const res = await fetch(`${base}/api/audits?id=known`, {
+      headers: { origin: "http://localhost:3000" },
+    });
+
+    expect(res.headers.get("access-control-allow-origin")).toBe("http://localhost:3000");
+  });
+
+  it("does not echo a non-loopback origin", async () => {
+    const res = await fetch(`${base}/api/audits?id=known`, {
+      headers: { origin: "https://evil.example.com" },
+    });
+
+    expect(res.headers.get("access-control-allow-origin")).toBeNull();
+  });
 });
