@@ -102,6 +102,11 @@ export async function runAuditJob(job: AuditJob, deps: RunAuditDeps): Promise<vo
     const enriched = await deps.enrich(scanned);
     await deps.save(enriched);
   } catch (error) {
+    // The record carries `error.message` for the user; the log carries the whole
+    // thing for whoever has to debug it. Without this a browser crash in Lambda
+    // shows up in CloudWatch as a successful 3-second invocation with no output.
+    console.error(`[audit] ${job.auditId} failed:`, error);
+
     try {
       await deps.save({
         ...skeletonRecord(job, strings, "running"),

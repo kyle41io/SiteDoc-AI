@@ -85,14 +85,20 @@ describe("runAuditJob", () => {
   });
 
   it("persists running then failed when the scan throws (never rejects)", async () => {
+    const logged = vi.spyOn(console, "error").mockImplementation(() => {});
+    const cause = new Error("boom");
     const { saves, deps: d } = deps({
       scan: async () => {
-        throw new Error("boom");
+        throw cause;
       },
     });
     await expect(runAuditJob(job, d)).resolves.toBeUndefined();
     expect(saves.map((s) => s.status)).toEqual(["running", "failed"]);
     expect(saves[1].error).toBe("boom");
     expect(saves[1].completedAt).toBe("2026-06-12T00:00:05.000Z");
+    // The whole error, not just its message: a stack is the difference between
+    // diagnosing a worker failure from the logs and having to guess.
+    expect(logged).toHaveBeenCalledWith(expect.stringContaining(job.auditId), cause);
+    logged.mockRestore();
   });
 });
