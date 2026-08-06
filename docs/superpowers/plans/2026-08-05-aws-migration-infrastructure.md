@@ -1382,10 +1382,11 @@ parameter path it needs. `sitedoc-pdf` can write nothing and cannot reach the AI
   ```hcl
   # Same image, different command — one image to build, push and pay ECR storage
   # for. The hard ceiling a public Chromium endpoint needs comes from
-  # `var.pdf_reserved_concurrency`, which is -1 (no reservation) on this account:
-  # its concurrency quota is the new-account default of 10, and Lambda rejects any
-  # reservation leaving under 10 unreserved, so no positive value is accepted. The
-  # quota itself is the ceiling until it is raised.
+  # `var.pdf_reserved_concurrency`. It was -1 (no reservation) while this account
+  # sat on the new-account concurrency quota of 10, because Lambda rejects any
+  # reservation leaving under 10 unreserved, so no positive value was accepted and
+  # the quota itself was the ceiling. The quota was raised to 1000 on 2026-08-06
+  # and the variable now defaults to 2.
   resource "aws_lambda_function" "pdf" {
     function_name = "${local.name_prefix}-pdf"
     role          = aws_iam_role.pdf.arn
