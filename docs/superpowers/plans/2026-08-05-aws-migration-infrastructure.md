@@ -2160,11 +2160,16 @@ before `s3 sync`; the invalidation needs the distribution id.
 Two settings in the repository. Without them the workflow fails at
 `configure-aws-credentials` with `Could not load credentials from any providers`.
 
-- [ ] **Step 1: Create the `aws-production` environment**
+- [ ] **Step 1: Configure the `aws-production` environment**
 
-  Settings → Environments → **New environment** → name it exactly `aws-production` (the OIDC
-  `sub` condition is `repo:kyle41io/SiteDoc-AI:environment:aws-production`; a different name
-  means every deploy is denied by the trust policy).
+  It already exists: GitHub auto-creates an environment the first time a job references one,
+  so the deploy run on 2026-08-06 created `aws-production` with **no protection rules and no
+  variables**. Existing is therefore not the same as configured — go to
+  Settings → Environments → `aws-production` rather than creating a new one.
+
+  The name must stay exactly `aws-production`; the OIDC `sub` condition is
+  `repo:kyle41io/SiteDoc-AI:environment:aws-production`, so renaming it means every deploy is
+  denied by the trust policy. The auto-created name is already lowercase and matches.
 
   **Not `production`.** This was learned the hard way on the first run: GitHub matches
   environment names case-insensitively, and the Vercel integration already owns an
@@ -2196,11 +2201,13 @@ Two settings in the repository. Without them the workflow fails at
   |---|---|
   | `AWS_ROLE_ARN` | the `deploy_role_arn` output from Task 9 Step 3 |
 
-  A repository-level variable will **not** do: the deploy job reads the environment's
-  variables, and a repo variable of the same name is shadowed by the environment scope
-  being empty.
+  A **variable**, not a secret — a role ARN is not sensitive, and secrets are masked in logs,
+  which makes a wrong value harder to spot.
 
-  A **variable**, not a secret.
+  Scope it to the environment, not the repository. A repository-level variable would in fact
+  be readable here (environment values override repo values, but an absent environment value
+  falls back to the repo one), so this is a choice rather than a requirement: keeping the ARN
+  on the gated environment means nothing outside the approval path can reach for it.
 
 - [ ] **Step 3: Confirm the trust relationship reads as expected**
 
