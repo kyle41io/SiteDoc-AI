@@ -71,6 +71,41 @@ resource "aws_ecr_repository" "browser" {
   }
 }
 
+# Lambda pulls the image as the `lambda.amazonaws.com` service principal, not as
+# whatever identity ran the apply, so without this every `CreateFunction` for a
+# container function fails with "Lambda does not have permission to access the
+# ECR image". Creating such a function in the console appears not to need it only
+# because the console adds this policy for you behind the scenes; Terraform does
+# not, which makes it a one-line omission that costs a whole failed deploy.
+#
+# `aws:SourceArn` scopes the grant to this account's own sitedoc functions —
+# without it, the service principal is a confused-deputy hole any account's
+# Lambda could pull through.
+data "aws_iam_policy_document" "browser_lambda_pull" {
+  statement {
+    sid    = "LambdaECRImageRetrievalPolicy"
+    effect = "Allow"
+
+    principals {
+      type        = "Service"
+      identifiers = ["lambda.amazonaws.com"]
+    }
+
+    actions = ["ecr:BatchGetImage", "ecr:GetDownloadUrlForLayer"]
+
+    condition {
+      test     = "StringLike"
+      variable = "aws:SourceArn"
+      values   = ["arn:aws:lambda:${var.region}:${data.aws_caller_identity.current.account_id}:function:sitedoc-*"]
+    }
+  }
+}
+
+resource "aws_ecr_repository_policy" "browser" {
+  repository = aws_ecr_repository.browser.name
+  policy     = data.aws_iam_policy_document.browser_lambda_pull.json
+}
+
 # ECR private storage is the one line item this architecture pays for after the
 # first year. Keeping three images holds it near $0.10-0.30/month instead of
 # growing with every deploy.
