@@ -69,6 +69,14 @@ resource "aws_lambda_function" "scan" {
       SITEDOC_ARTIFACT_BUCKET = aws_s3_bucket.artifacts.id
       SSM_PREFIX              = local.ssm_prefix
       SITEDOC_AXE_DIR         = "/var/task/node_modules/axe-core"
+
+      # Playwright throws away the browser's stderr unless this is set, which
+      # makes a Chromium crash unfalsifiable from the outside: the invocation
+      # succeeds, the handler reports "Target page, context or browser has been
+      # closed", and the reason Chromium gave is gone. Worth the handful of extra
+      # log lines per audit for a worker whose whole job is driving a browser.
+      # Set to "pw:browser,pw:protocol" if a CDP-level trace is ever needed.
+      DEBUG = "pw:browser*"
     }
   }
 
