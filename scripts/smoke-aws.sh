@@ -23,6 +23,18 @@ ok() { echo "  ok — $*"; }
 
 code_of() { curl -sS -o /dev/null -w '%{http_code}' "$@"; }
 
+# CloudFront SigV4-signs origin requests to the Lambda Function URLs and Lambda
+# refuses unsigned payloads, so the caller has to hand CloudFront the body hash to
+# fold into the signature. Without it the origin 403s and the distribution's
+# 403 -> /404.html rule reports it as a 404 — which is not a clue.
+post_json() {
+  local url="$1" body="$2"
+  curl -sS -X POST "$url" \
+    -H 'content-type: application/json' \
+    -H "x-amz-content-sha256: $(printf '%s' "$body" | sha256sum | cut -d' ' -f1)" \
+    -d "$body" "${@:3}"
+}
+
 echo "Smoke testing $BASE"
 
 # 1. The page path is pure S3 — no compute, no cold start.
@@ -35,15 +47,15 @@ ok "home page served"
 ok "unknown path 404s"
 
 # 3. The SSRF guard runs before anything is queued.
-guard=$(code_of -X POST "$BASE/api/audits" -H 'content-type: application/json' \
-  -d '{"url":"http://127.0.0.1/","language":"en"}')
+guard=$(post_json "$BASE/api/audits" '{"url":"http://127.0.0.1/","language":"en"}' \
+  -o /dev/null -w '%{http_code}')
 [ "$guard" = 400 ] || fail "SSRF guard returned $guard, expected 400"
 ok "SSRF guard rejects loopback"
 
 # 4. Create a real audit: 202 plus a queued record, exactly as on Render.
 started=$SECONDS
-created=$(curl -sS -X POST "$BASE/api/audits" -H 'content-type: application/json' \
-  -d "$(jq -nc --arg url "$TARGET" '{url: $url, language: "en"}')")
+created=$(post_json "$BASE/api/audits" \
+  "$(jq -nc --arg url "$TARGET" '{url: $url, language: "en"}')")
 id=$(jq -r '.id // empty' <<<"$created")
 [ -n "$id" ] || fail "POST /api/audits returned no id: $created"
 [ "$(jq -r .status <<<"$created")" = queued ] || fail "new audit was not queued: $created"

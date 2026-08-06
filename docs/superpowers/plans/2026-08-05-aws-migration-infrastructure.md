@@ -1905,25 +1905,36 @@ carry a body.
   echo "$BASE"
   ```
 
-- [ ] **Step 5: Verify OAC signing for a POST with a body**
+- [x] **Step 5: Verify OAC signing for a POST with a body — RESOLVED 2026-08-06, OAC kept**
 
-  This is the risk. Run:
+  Spec risk #1 is settled: **OAC does sign bodied requests**, and the `NONE` +
+  secret-header fallback was not needed. But it took two corrections, both now in the
+  config:
+
+  1. **OAC needs two Lambda permissions, not one.** `lambda:InvokeFunctionUrl` alone is
+     not enough; `lambda:InvokeFunction` for the same principal and `source_arn` is also
+     required. With only the first, every origin request is refused before the function
+     runs and `Url4xxCount` climbs while `Invocations` stays at zero.
+  2. **The viewer must supply the body hash.** CloudFront folds it into the signature
+     but will not compute it, and Lambda rejects unsigned payloads, so `POST`/`PUT`
+     callers must send `x-amz-content-sha256: <hex sha256 of body>`. This is why
+     `payloadSha256` exists in `src/lib/payload-hash.ts` and why `post_json` in the smoke
+     script sets the header.
+
+  Both failures present as a plain **404**, not a 403 signature error as this step
+  predicted — the distribution's `403 -> /404.html` rule rewrites them, and nothing is
+  logged because the function never runs. When an `/api/*` route 404s, check
+  `Url4xxCount` against `Invocations` before suspecting the handler.
+
+  Verification, against the live distribution:
 
   ```bash
-  curl -sS -i -X POST "$BASE/api/audits" \
-    -H 'content-type: application/json' \
-    -d '{"url":"https://example.com","language":"en"}' | head -20
+  BODY='{"url":"http://127.0.0.1/","language":"en"}'
+  curl -sS -X POST "$BASE/api/audits" -H 'content-type: application/json' \
+    -H "x-amz-content-sha256: $(printf '%s' "$BODY" | sha256sum | cut -d' ' -f1)" \
+    -d "$BODY"
+  # => {"error":"Local and private network URLs cannot be scanned."} with status 400
   ```
-
-  Expected: `HTTP/2 202` and a JSON body with `"status":"queued"`.
-
-  **If it returns 403 with an `x-amz` signature error**, OAC cannot sign bodied requests in
-  this configuration. Apply the fallback from spec §11.1 rather than debugging further:
-  set both Function URLs to `authorization_type = "NONE"`, add a
-  `custom_header { name = "x-sitedoc-origin", value = <random_password.origin.result> }` to
-  the `api` and `pdf` origins, and reject requests missing that header in
-  `lambda/http.ts`. Record which path was taken in the PR description — the spec's decision
-  log depends on knowing.
 
 - [ ] **Step 6: Confirm the scan completed**
 
