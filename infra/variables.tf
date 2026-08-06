@@ -31,3 +31,24 @@ variable "github_repo" {
   type        = string
   default     = "kyle41io/SiteDoc-AI"
 }
+
+# -1 means "no reservation", and it has to stay that way on this account. The
+# account's concurrent-execution quota is 10 (the new-account default; the usual
+# figure is 1000), and Lambda refuses any reservation that would leave fewer than
+# 10 unreserved — so on a limit of 10 *every* positive value is rejected, not just
+# a large one. The 10 itself still bounds Chromium: the account cannot run more
+# than 10 invocations at once no matter which function asks.
+#
+# After raising the quota in Service Quotas ("Concurrent executions"), set this to
+# 2 to restore the per-function ceiling that replaced the old in-process
+# `pdfsInFlight` counter.
+variable "pdf_reserved_concurrency" {
+  description = "Reserved concurrency for the pdf function. -1 disables reservation."
+  type        = number
+  default     = -1
+
+  validation {
+    condition     = var.pdf_reserved_concurrency == -1 || var.pdf_reserved_concurrency >= 1
+    error_message = "Use -1 for no reservation, or a positive value once the account quota exceeds 10 + this value."
+  }
+}

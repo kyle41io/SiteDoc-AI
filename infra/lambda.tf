@@ -103,7 +103,7 @@ resource "aws_lambda_function" "pdf" {
 
   memory_size                    = 2048
   timeout                        = 120
-  reserved_concurrent_executions = 2
+  reserved_concurrent_executions = var.pdf_reserved_concurrency
 
   image_config {
     command = ["pdf.handler"]

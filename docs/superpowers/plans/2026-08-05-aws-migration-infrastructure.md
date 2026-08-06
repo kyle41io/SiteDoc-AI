@@ -1381,8 +1381,11 @@ parameter path it needs. `sitedoc-pdf` can write nothing and cannot reach the AI
 
   ```hcl
   # Same image, different command — one image to build, push and pay ECR storage
-  # for. Reserved concurrency of 2 replaces the in-process `pdfsInFlight`
-  # counter: a public endpoint that launches Chromium needs a hard ceiling.
+  # for. The hard ceiling a public Chromium endpoint needs comes from
+  # `var.pdf_reserved_concurrency`, which is -1 (no reservation) on this account:
+  # its concurrency quota is the new-account default of 10, and Lambda rejects any
+  # reservation leaving under 10 unreserved, so no positive value is accepted. The
+  # quota itself is the ceiling until it is raised.
   resource "aws_lambda_function" "pdf" {
     function_name = "${local.name_prefix}-pdf"
     role          = aws_iam_role.pdf.arn
@@ -1392,7 +1395,7 @@ parameter path it needs. `sitedoc-pdf` can write nothing and cannot reach the AI
 
     memory_size                    = 2048
     timeout                        = 120
-    reserved_concurrent_executions = 2
+    reserved_concurrent_executions = var.pdf_reserved_concurrency
 
     image_config {
       command = ["pdf.handler"]
