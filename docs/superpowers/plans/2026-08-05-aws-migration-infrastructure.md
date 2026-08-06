@@ -307,17 +307,14 @@ credential; after that every deploy is keyless.
   }
 
   # --- GitHub OIDC -----------------------------------------------------------
-  # The thumbprints below are GitHub's well-known intermediate CA fingerprints.
-  # AWS no longer validates them for this issuer, but the API still requires at
-  # least one, so both published values are listed rather than fetched at plan
-  # time (which would make every plan depend on a live TLS handshake).
-  resource "aws_iam_openid_connect_provider" "github" {
-    url             = "https://token.actions.githubusercontent.com"
-    client_id_list  = ["sts.amazonaws.com"]
-    thumbprint_list = [
-      "6938fd4d98bab03faadb97b34396831e3780aea1",
-      "1c58a3a8518e8759bf075b76b750d4f2df264fcd",
-    ]
+  # Read, not created: AWS permits one OIDC provider per issuer URL per account,
+  # and account 403001213633 already has one (created 2026-07-28) that
+  # `kyle41io/Interview-Prepare` assumes a role through. Owning it here would make
+  # a `terraform destroy` of this stack break that repo's deploys. Must exist
+  # before the first apply — see the comment in main.tf for the one-off CLI call
+  # that creates it in a fresh account.
+  data "aws_iam_openid_connect_provider" "github" {
+    url = "https://token.actions.githubusercontent.com"
   }
 
   # --- ECR -------------------------------------------------------------------
@@ -374,7 +371,7 @@ credential; after that every deploy is keyless.
 
       principals {
         type        = "Federated"
-        identifiers = [aws_iam_openid_connect_provider.github.arn]
+        identifiers = [data.aws_iam_openid_connect_provider.github.arn]
       }
 
       condition {

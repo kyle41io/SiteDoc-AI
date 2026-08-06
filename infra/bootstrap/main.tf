@@ -37,17 +37,26 @@ resource "aws_s3_bucket_public_access_block" "state" {
 }
 
 # --- GitHub OIDC -----------------------------------------------------------
-# The thumbprints below are GitHub's well-known intermediate CA fingerprints.
-# AWS no longer validates them for this issuer, but the API still requires at
-# least one, so both published values are listed rather than fetched at plan
-# time (which would make every plan depend on a live TLS handshake).
-resource "aws_iam_openid_connect_provider" "github" {
-  url            = "https://token.actions.githubusercontent.com"
-  client_id_list = ["sts.amazonaws.com"]
-  thumbprint_list = [
-    "6938fd4d98bab03faadb97b34396831e3780aea1",
-    "1c58a3a8518e8759bf075b76b750d4f2df264fcd",
-  ]
+# Read, not created. AWS permits exactly one OIDC provider per issuer URL per
+# account, so this is shared account-level infrastructure rather than something
+# SiteDoc owns: `kyle41io/Interview-Prepare` already assumes a role through this
+# same provider. Managing it here would mean a `terraform destroy` of this stack
+# silently breaking that repo's deploys, and any thumbprint drift between the two
+# configurations fighting on every apply.
+#
+# It must therefore exist before the first apply. In a fresh account, create it
+# once by hand:
+#
+#   aws iam create-open-id-connect-provider \
+#     --url https://token.actions.githubusercontent.com \
+#     --client-id-list sts.amazonaws.com \
+#     --thumbprint-list 6938fd4d98bab03faadb97b34396831e3780aea1
+#
+# `client_id_list` must contain `sts.amazonaws.com` or the `:aud` condition in
+# the trust policy can never match. The thumbprint is a formality — AWS stopped
+# validating it for this issuer in 2023 but the API still demands one.
+data "aws_iam_openid_connect_provider" "github" {
+  url = "https://token.actions.githubusercontent.com"
 }
 
 # --- ECR -------------------------------------------------------------------
