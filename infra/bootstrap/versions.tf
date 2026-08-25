@@ -8,8 +8,7 @@ terraform {
     }
   }
 
-  # Local state on purpose: this stack creates the bucket the other stack's state
-  # lives in. Its own state is small, recreatable, and holds no secrets.
+  # Backend lives in backend.tf.
 }
 
 provider "aws" {

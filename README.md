@@ -215,41 +215,26 @@ infrastructure is two Terraform stacks: `infra/bootstrap/` (applied once by hand
 state bucket, GitHub OIDC provider, deploy role, ECR repository) and `infra/` (everything
 else, applied by the deploy pipeline).
 
-> ⚠️ **`infra/bootstrap/` has no remote backend.** Its state is the gitignored
-> `infra/bootstrap/terraform.tfstate` on whichever machine ran the first `apply` —
-> the usual chicken-and-egg, since that stack creates the very bucket the other
-> stack keeps its state in. Fourteen live resources are tracked there, including
-> the GitHub OIDC provider, the `sitedoc-deploy` role and the `sitedoc-browser`
-> ECR repository.
->
-> **That file is not reproducible.** Lose it and those resources still exist but
-> are unmanaged: Terraform will try to create them again, fail on "already
-> exists", and each one has to be `terraform import`ed back by hand.
->
-> The permanent fix is to move it into the bucket it already created, which is
-> versioned and encrypted:
->
-> ```hcl
-> # infra/bootstrap/versions.tf, inside the existing terraform { } block
-> backend "s3" {
->   bucket  = "sitedoc-tfstate-403001213633"
->   key     = "bootstrap/terraform.tfstate"
->   region  = "us-east-1"
->   encrypt = true
-> }
-> ```
->
-> ```bash
-> terraform -chdir=infra/bootstrap init -migrate-state
-> ```
->
-> Terraform copies the local state up and leaves a `.tfstate.backup` behind.
-> After that the stack is reproducible on any machine with credentials.
+**Both stacks keep their state in S3.** `infra/bootstrap/` started on local
+state — it creates the very bucket the other stack stores its state in, the
+usual chicken-and-egg — and was migrated once that bucket existed. Neither
+stack is tied to a particular machine any more.
+
+The bucket name cannot be interpolated inside a backend block, so it is passed
+at init time. On a fresh clone, initialise each stack with:
+
+```bash
+terraform -chdir=infra/bootstrap init -backend-config="bucket=sitedoc-tfstate-403001213633"
+terraform -chdir=infra          init -backend-config="bucket=sitedoc-tfstate-403001213633"
+```
+
+Locking is the native S3 lockfile (`use_lockfile`, Terraform 1.11+), so there is
+no DynamoDB lock table to create or pay for.
 
 ## Picking this up on another machine
 
-`git clone`, `npm install`, `npm run dev` — that is the whole setup. Nothing here
-is machine-bound except the Terraform bootstrap state described above.
+`git clone`, `npm install`, `npm run dev` — that is the whole setup. Nothing in
+this repository is machine-bound.
 
 - **No secrets are required to run it.** Every variable in `.env.example` is
   optional; with no key present the AI layer falls back to a deterministic report
